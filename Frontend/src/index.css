@@ -1,0 +1,33 @@
+/* @tailwind base;
+@tailwind components;
+@tailwind utilities; */
+
+/*
+Primary 
+--primary: #1E3A8A;      - Deep Trust Blue 
+
+ Secondary 
+--accent: #0EA5E9;       - AI Cyan 
+
+ Background 
+--bg-dark: #111827;
+--bg-light: #F9FAFB;
+
+ Text 
+--text-primary: #E5E7EB;
+--text-secondary: #9CA3AF;
+
+ Status 
+--success: #10B981;
+--warning: #F59E0B;
+--danger: #EF4444;
+
+Purpose	Color	Why
+Background	#0F172A	Dark AI command-center feel
+Card Surface	#111827	Clean contrast container
+Primary CTA	#2563EB	Trust + authority
+Accent Glow	#22D3EE	AI intelligence highlight
+Text Primary	#E5E7EB	High readability
+Input Border	#374151	Subtle professional tone
+
+*/
