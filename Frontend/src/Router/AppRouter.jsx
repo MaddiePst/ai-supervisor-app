@@ -1,26 +1,19 @@
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import React from "react";
-import App from "../App";
 import Login from "../Pages/LogIn";
 import Register from "../Pages/Register";
+import Dashboard from "../Pages/Dashboard";
+import Settings from "../Pages/Settings";
 
 export default function AppRouter() {
   return <BrowserRouter>          
       <Routes>
-        <Route path="/" element={<Navigate to="/register" />} />
+        <Route path="/" element={<Navigate to="/login" />} />
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
+        <Route path="/dashboard" element={<Dashboard />} />
+        <Route path="/settings" element={<Settings />} />
       </Routes>
     </BrowserRouter>
 
-  // return (
-  //   // wraps your app and enables client-side routing (URL changes without page reloads).
-  //   <BrowserRouter>          
-  //     <Routes>
-  //       <Route path="/" element={<Navigate to="/login" />} />
-  //       <Route path="/login" element={<Login />} />
-  //       <Route path="/register" element={<Register />} />
-  //     </Routes>
-  //   </BrowserRouter>
-  // );
 }

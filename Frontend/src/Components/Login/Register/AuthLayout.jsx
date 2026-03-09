@@ -1,6 +1,6 @@
 import React from "react";
-import NeuralBackground from "./NeuralBackground";
-import SocialAuthButtons from "../Components/SocialAuthButtons.jsx";
+import NeuralBackground from "./NeuralBackground.jsx";
+import SocialAuthButtons from "./SocialAuthButtons.jsx";
 
 export default function AuthLayout({ children }) {
   return (

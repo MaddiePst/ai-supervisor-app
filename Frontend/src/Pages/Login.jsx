@@ -1,15 +1,16 @@
 
 import React from "react";
 import { Link, useNavigate } from "react-router-dom";
-import AuthLayout from "../components/AuthLayout";
-import InputField from "../Components/InputField"; 
+import AuthLayout from "../Components/Login/Register/AuthLayout.jsx";
+import InputField from "../Components/Login/Register/InputField.jsx"; 
 
 export default function Login() {
   const navigate = useNavigate();  
 
   return (
     <AuthLayout>
-      <div className="w-full max-w-md p-3 flex flex-col justify-centerctext-gray-300">
+      {/* Right Panel */}
+      <div className="w-full max-w-md p-3 flex flex-col justify-center text-gray-300">
         <h2 className="text-3xl font-bold mb-1">Welcome!!</h2>
         <p className=" mb-4">Access your AI control panel</p>
 
