@@ -23,9 +23,9 @@ export default function Sidebar() {
         </NavLink>
 
         <NavLink
-          to="/menuItem1"
+          to="/addproject"
           className={({ isActive }) =>`${linkStyle} ${isActive ? activeStyle : ""}`}>
-          Menu Item 1
+          Add Project/Task
         </NavLink>
 
         <NavLink
