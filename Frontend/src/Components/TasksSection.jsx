@@ -7,10 +7,10 @@ import {
 } from "@dnd-kit/core";
 
 import {
-  arrayMove,
-  SortableContext,
-  verticalListSortingStrategy,
-  useSortable
+  arrayMove,                            //Moves items in an array
+  SortableContext,                     //Enables sortable items
+  verticalListSortingStrategy,         //Enables sortable items
+  useSortable                         //Hook that makes items draggable
 } from "@dnd-kit/sortable";
 
 import { CSS } from "@dnd-kit/utilities";
@@ -31,20 +31,26 @@ function SortableTask({
   const { attributes, listeners, setNodeRef, transform, transition } =
     useSortable({ id: task.id });
 
+    // transform/Drag animation style 
   const style = {
     transform: CSS.Transform.toString(transform),
     transition
   };
 
+  // Checks if this task is currently being edited
   const isEditing = editingTaskId === task.id;
 
   return (
     <div
+    // Connects this DOM element to DnD 
       ref={setNodeRef}
+      // Adds the transform animation
       style={style}
-      {...attributes}
-      {...listeners}
-      className="cursor-grab active:cursor-grabbing"
+      // Enable drag only when allowed
+      {...(showActions && !isEditing ? attributes : {})}
+{...(showActions && !isEditing ? listeners : {})}
+// Cursor style
+className={showActions && !isEditing ? "cursor-grab active:cursor-grabbing" : ""}
     >
       <div className="flex justify-between items-center mb-1 text-sm">
 
@@ -87,22 +93,32 @@ function SortableTask({
             <>
               {isEditing ? (
                 <button
-                  onClick={saveEdit}
-                  className="text-green-600 text-xs"
-                >
-                  Save
-                </button>
+                onClick={(e) => {
+                  e.stopPropagation();
+                  saveEdit();
+                }}
+                className="text-green-600 text-xs"
+              >
+                Save
+              </button>
               ) : (
                 <button
-                  onClick={() => startEdit(task)}
+                  onPointerDown={(e) => e.stopPropagation()}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    startEdit(task);
+                  }}
                   className="text-blue-600 text-xs"
                 >
                   Edit
                 </button>
-              )}
+                )}
 
-              <button
-                onClick={() => deleteTask(task.id)}
+<button
+onPointerDown={(e) => e.stopPropagation()}
+  onClick={(e) => {
+    e.stopPropagation();
+     deleteTask(task.id)}}
                 className="text-red-600 text-xs"
               >
                 Delete
@@ -263,7 +279,7 @@ export default function TasksByPercentage({ showActions = false }) {
 
       <DndContext
         collisionDetection={closestCenter}
-        onDragEnd={handleDragEnd}
+        onDragEnd={showActions ? handleDragEnd : undefined}
       >
 
         <SortableContext

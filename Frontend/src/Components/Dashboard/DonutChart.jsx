@@ -4,7 +4,7 @@ import { PieChart, Pie, Cell, Tooltip } from "recharts";
 const COLORS = ["#8b5cf6", "#06b6d4", "#FDD835", "#f97316", "#ef4444"];
 
 export default function DonutChart() {
-  // 1 Chart data stored in state
+  //  Chart data stored in state
   const [data, setData] = useState([
     { name: "Frontend", value: 2 },
     { name: "Backend", value: 1 },
@@ -15,14 +15,17 @@ export default function DonutChart() {
 
   //  Simulate automatic updates (like new analysis results)
   useEffect(() => {
+    // Repeating timer
     const interval = setInterval(() => {
+      // uses the previous state value
       setData((prev) =>
         prev.map((item) => ({
           ...item,
+          // Simulates random updates
           value: Math.max(1, item.value + Math.floor(Math.random() * 2 - 0.5)),
         }))
       );
-    }, 100000); // updates every 10 min
+    }, 100000); // updates every 1.40 min
 
     return () => clearInterval(interval);
   }, []);
@@ -32,6 +35,7 @@ export default function DonutChart() {
       <h3 className="text-lg font-semibold mb-4">Project Progress by Person/Skill/Department</h3>
       <div className="grid grid-cols-2">
 
+      {/* Creates the chart container */}
       <PieChart width={250} height={200}>
         {/* Outer Pie */}
         <Pie
@@ -43,7 +47,7 @@ export default function DonutChart() {
           paddingAngle={3}
           dataKey="value"
           >
-         
+         {/* Coloring slices */}
           {data.map((entry, index) => (
             <Cell key={index} fill={COLORS[index % COLORS.length]} />
           ))}
@@ -61,16 +65,13 @@ export default function DonutChart() {
           ></Pie>
         <Tooltip />
       </PieChart>
-       {/* Coverage label */}
+       {/* Skill Legend */}
   <div className="text-center">
     <p className="text-gray-800 text-sm">Skill Coverage</p>
     <p className="text-2xl font-bold text-green-600">
       {skillCoverage}%
     </p>
-  {/* </div> */}
-
-      {/* <div> */}
-  {data.map((entry, index) => (
+    {data.map((entry, index) => (
     <div className="ml-10 m-2 flex items-center gap-2" key={entry.name}>
       
       <span
