@@ -29,9 +29,9 @@ export default function Sidebar() {
         </NavLink>
 
         <NavLink
-          to="/menuItem2"
+          to="/candidates"
           className={({ isActive }) =>`${linkStyle} ${isActive ? activeStyle : ""}`}>
-          Menu Item 2
+          Candidates
         </NavLink>
 
         <NavLink
