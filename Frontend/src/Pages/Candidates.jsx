@@ -59,7 +59,7 @@ export default function Candidate() {
   };
 
   return (
-    <div className="bg-[#c5c7ca] text-gray-800 flex">
+    <div className="min-h-screen bg-[#c5c7ca] text-gray-800 flex">
       <Sidebar />
 
       <div className="p-3 w-5xl">
