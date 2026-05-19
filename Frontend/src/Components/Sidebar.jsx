@@ -67,6 +67,14 @@ export default function Sidebar() {
           <Settings className={iconStyle} />
           Settings
         </NavLink>
+        {/* <NavLink
+  to="/logout"
+  className={({ isActive }) =>
+    `${linkStyle} ${isActive ? activeStyle : ""}`
+  }
+>
+  Logout
+</NavLink>   */}
 
       </nav>
     </aside>

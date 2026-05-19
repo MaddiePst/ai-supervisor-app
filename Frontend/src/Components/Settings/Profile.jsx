@@ -4,7 +4,9 @@ import { useState } from "react";
 export default function Profile() {
   const [formData, setFormData] = useState({
     fullName: "",
+    email:"",
     industry: "",
+    company: "",
     role: "",
     country: "",
     timeZone: "",
@@ -121,12 +123,29 @@ export default function Profile() {
           onChange={handleChange}
           required
         />
+        {/* Email */}
+        <Input
+          label="Email"
+          name="email"
+          value={formData.email}
+          onChange={handleChange}
+          required
+        />
 
         {/* Industry */}
         <Input
           label="Industry"
           name="industry"
           value={formData.industry}
+          onChange={handleChange}
+          required
+        />
+
+        {/* Company */}
+        <Input
+          label="Company"
+          name="Company"
+          value={formData.company}
           onChange={handleChange}
           required
         />
