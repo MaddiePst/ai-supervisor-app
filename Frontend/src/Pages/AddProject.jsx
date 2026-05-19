@@ -1,6 +1,6 @@
 import React,{useState} from "react";
 import Sidebar from "../Components/Sidebar";
-import TasksSection from "../Components/TasksSection";
+
 
 export default function AddProject(){
   const [file, setFile] = useState(null);
@@ -31,6 +31,12 @@ export default function AddProject(){
 
     <div className="bg-[#c5c7ca] text-gray-800 flex flex-col-2">
       <Sidebar/>
+      
+      
+      
+      
+      
+      
       {/* Drag and Drop Section */}
       <div className="flex flex-col flex-1 p-6">
 
@@ -82,7 +88,7 @@ export default function AddProject(){
       )}
 
 <div className="flex-1 mt-6">
-  <TasksSection showActions={true} />
+  
 </div>
     </div>
 
