@@ -1,12 +1,9 @@
 import express from "express";
 import multer from "multer";
-import { createRequire } from "module";
-import { supabase } from "../lib/supabase.js";
+import { extractText } from "unpdf";
 import { parseNewProject, parseProjectUpdate } from "../agents/parseProject.js";
+import { supabase } from "../lib/supabase.js";
 
-
-const require = createRequire(import.meta.url);
-const pdf = require("pdf-parse");
 const router = express.Router();
 
 const upload = multer({
@@ -27,13 +24,14 @@ router.post("/:projectId", upload.single("file"), async (req, res) => {
 
   try {
     // 1. Extract text from PDF
-    const pdfData = await pdf(req.file.buffer);
-    const rawText = pdfData.text;
+    const { text: rawText } = await extractText(
+      new Uint8Array(req.file.buffer),
+    );
 
     // 2. Upload PDF to Supabase Storage
     const filename = `${Date.now()}_${req.file.originalname}`;
     const { error: storageError } = await supabase.storage
-      .from("project-docs")
+      .from("project_docs")
       .upload(`${projectId}/${filename}`, req.file.buffer, {
         contentType: "application/pdf",
       });
@@ -58,7 +56,6 @@ router.post("/:projectId", upload.single("file"), async (req, res) => {
       .single();
 
     if (uploadError) throw uploadError;
-    
 
     // 5. Check if project already has tasks
     const { data: existingTasks, error: tasksError } = await supabase
@@ -80,13 +77,12 @@ router.post("/:projectId", upload.single("file"), async (req, res) => {
           parsedTasks.map((task) => ({
             ...task,
             project_id: projectId,
-          }))
+          })),
         )
         .select();
 
       if (taskError) throw taskError;
       tasks = data;
-
     } else {
       // 6b. Existing project — parse update and upsert tasks
       const changes = await parseProjectUpdate(rawText, existingTasks);
@@ -117,7 +113,7 @@ router.post("/:projectId", upload.single("file"), async (req, res) => {
             if (error) throw error;
             return data;
           }
-        })
+        }),
       );
 
       tasks = upserted;
@@ -135,7 +131,10 @@ router.post("/:projectId", upload.single("file"), async (req, res) => {
 });
 
 router.use((err, req, res, next) => {
-  if (err instanceof multer.MulterError || err.message === "Only PDF files are allowed") {
+  if (
+    err instanceof multer.MulterError ||
+    err.message === "Only PDF files are allowed"
+  ) {
     return res.status(400).json({ error: err.message });
   }
   next(err);

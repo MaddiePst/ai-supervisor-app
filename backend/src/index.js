@@ -1,16 +1,19 @@
-import 'dotenv/config';
-import express from 'express';
-import cors from 'cors';
-import uploadRoutes from './routes/uploads.js';
-import projectRoutes from './routes/projects.js';
-import taskRoutes from './routes/tasks.js';
+process.on("uncaughtException", (err) => {
+  console.error("Uncaught Exception:", err);
+});
+
+import cors from "cors";
+import "dotenv/config";
+import express from "express";
+import projectRoutes from "./routes/projects.js";
+import taskRoutes from "./routes/tasks.js";
+import uploadRoutes from "./routes/uploads.js";
 
 const PORT = process.env.PORT || 3000;
 const app = express();
 
-app.use(cors({ origin: "http://localhost:5173"}));
+app.use(cors({ origin: "http://localhost:5173" }));
 app.use(express.json());
-
 
 app.use("/api/uploads", uploadRoutes);
 app.use("/api/projects", projectRoutes);
