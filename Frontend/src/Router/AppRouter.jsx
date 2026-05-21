@@ -10,6 +10,7 @@ import Candidates from "../Pages/Candidates";
 import Profile from "../Components/Settings/Profile";
 import Notifications from "../Components/Settings/Notifications";
 import Appearance from "../Components/Settings/Appearance";
+import AuthCallback from "../Components/AuthCallback";
 
 
 export default function AppRouter() {
@@ -19,6 +20,7 @@ export default function AppRouter() {
         <Route path="/" element={<Navigate to="/login" />} />
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
+<Route path="/auth/callback" element={<AuthCallback />} />
         <Route
   path="/dashboard"
   element={
