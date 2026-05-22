@@ -56,6 +56,14 @@ export function AuthProvider({ children }) {
     setToken(null);
   };
 
+  const restoreFromToken = async (sessionToken) => {
+    const data = await fetchMe(sessionToken);
+    localStorage.setItem("token", sessionToken);
+    setToken(sessionToken);
+    setUser(data.user);
+    return data;
+  };
+
   return (
     <AuthContext.Provider
       value={{
@@ -65,6 +73,7 @@ export function AuthProvider({ children }) {
         isAuthenticated: !!token,
         login,
         register,
+        restoreFromToken,
         logout,
       }}
     >

@@ -3,7 +3,7 @@ const API_URL = import.meta.env.VITE_API;
 
 // ─── REGISTER ─────────────────────────────────────────────────────────────────
 export const registerUser = async (form) => {
-  const res = await fetch(`${API_URL}/register`, {
+  const res = await fetch(`${API_URL}/api/auth/register`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
@@ -26,7 +26,7 @@ export const registerUser = async (form) => {
 
 // ─── LOGIN ────────────────────────────────────────────────────────────────────
 export const loginUser = async (email, password) => {
-  const res = await fetch(`${API_URL}/login`, {
+  const res = await fetch(`${API_URL}/api/auth/login`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ email, password }),
@@ -44,7 +44,7 @@ export const loginUser = async (email, password) => {
 // ─── GET CURRENT USER ─────────────────────────────────────────────────────────
 // Called by AuthContext on every page load to restore session from stored token
 export const fetchMe = async (token) => {
-  const res = await fetch(`${API_URL}/api/dashboard`, {
+  const res = await fetch(`${API_URL}/api/users/me`, {
     headers: { Authorization: `Bearer ${token}` },
   });
 
