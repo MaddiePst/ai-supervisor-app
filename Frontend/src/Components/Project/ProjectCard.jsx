@@ -11,7 +11,7 @@ function deriveStatus(tasks) {
   return "not_started";
 }
 
-export default function ProjectCard({ project, tasks = [] }) {
+export default function ProjectCard({ project, tasks = [], editable = false, onTaskClick }) {
   const [expandedId, setExpandedId] = useState(null);
 
   const completedCount = tasks.filter((t) => t.status === "complete").length;
@@ -22,8 +22,12 @@ export default function ProjectCard({ project, tasks = [] }) {
     tasks.length > 0 ? Math.round((completedCount / tasks.length) * 100) : 0;
   const overallStatus = deriveStatus(tasks);
 
-  const handleToggle = (id) => {
-    setExpandedId((prev) => (prev === id ? null : id));
+  const handleToggle = (task) => {
+    if (editable && onTaskClick) {
+      onTaskClick(task);
+    } else {
+      setExpandedId((prev) => (prev === task.id ? null : task.id));
+    }
   };
 
   return (
@@ -71,7 +75,7 @@ export default function ProjectCard({ project, tasks = [] }) {
               key={task.id}
               task={task}
               isExpanded={expandedId === task.id}
-              onToggle={() => handleToggle(task.id)}
+              onToggle={() => handleToggle(task)}
             />
           ))
         )}

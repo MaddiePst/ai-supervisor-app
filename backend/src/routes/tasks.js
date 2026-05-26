@@ -72,4 +72,22 @@ router.delete("/:id", async (req, res) => {
   }
 });
 
+// PUT /api/tasks/:id - full task update
+router.put("/:id", async (req, res) => {
+  const { title, what, how, skills, status } = req.body;
+  try {
+    const { data, error } = await supabase
+      .from("tasks")
+      .update({ title, what, how, skills, status, updated_at: new Date() })
+      .eq("id", req.params.id)
+      .select()
+      .single();
+
+    if (error) throw error;
+    res.json(data);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 export default router;
