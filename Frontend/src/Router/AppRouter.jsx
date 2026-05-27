@@ -1,5 +1,7 @@
 import React from "react";
 import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
+import AuthCallback from "../Components/AuthCallback";
+import ProtectedRoute from "../Components/ProtectedRoute";
 import ProjectView from "../Components/Project/ProjectView";
 import Appearance from "../Components/Settings/Appearance";
 import Notifications from "../Components/Settings/Notifications";
@@ -7,7 +9,7 @@ import Profile from "../Components/Settings/Profile";
 import AddProject from "../Pages/AddProject";
 import Candidates from "../Pages/Candidates";
 import Dashboard from "../Pages/Dashboard";
-import Login from "../Pages/LogIn";
+import Login from "../Pages/Login";
 import Register from "../Pages/Register";
 import Settings from "../Pages/Settings";
 
@@ -18,14 +20,48 @@ export default function AppRouter() {
         <Route path="/" element={<Navigate to="/login" />} />
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
-        <Route path="/dashboard" element={<Dashboard />} />
-        <Route path="/addproject" element={<AddProject />} />
-        <Route path="/candidates" element={<Candidates />} />
-        <Route path="/projects/:id" element={<ProjectView />} />
-        {/* <Route path="/settings/profile" element={<Settings />} /> */}
-        {/* Settings layout */}
-        <Route path="/settings" element={<Settings />}>
-          <Route index path="profile" element={<Profile />} /> {/* default */}
+        <Route path="/auth/callback" element={<AuthCallback />} />
+        <Route
+          path="/dashboard"
+          element={
+            <ProtectedRoute>
+              <Dashboard />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/addproject"
+          element={
+            <ProtectedRoute>
+              <AddProject />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/candidates"
+          element={
+            <ProtectedRoute>
+              <Candidates />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/projects/:id"
+          element={
+            <ProtectedRoute>
+              <ProjectView />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/settings"
+          element={
+            <ProtectedRoute>
+              <Settings />
+            </ProtectedRoute>
+          }
+        >
+          <Route index path="profile" element={<Profile />} />
           <Route path="notifications" element={<Notifications />} />
           <Route path="appearance" element={<Appearance />} />
         </Route>
