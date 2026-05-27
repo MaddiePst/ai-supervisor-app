@@ -7,7 +7,7 @@ const router = Router();
 router.get("/", async (req, res) => {
   const { role } = req.query;
   try {
-    let query = supabase.from("users").select("id, name, role");
+    let query = supabase.from("profiles").select("id, full_name, role");
     if (role) query = query.eq("role", role);
     const { data, error } = await query;
     if (error) throw error;

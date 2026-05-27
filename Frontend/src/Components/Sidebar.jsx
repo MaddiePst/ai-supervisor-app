@@ -9,7 +9,7 @@ import {
 
 export default function Sidebar() {
   const linkStyle =
-    "flex items-center gap-3 px-4 py-3 rounded-xl text-gray-500 hover:bg-white/40 hover:text-[#111827] transition";
+    "flex items-center gap-3 px-4 py-3 rounded-xl text-gray-500 hover:bg-white/40 hover:text-[#111827] transition whitespace-nowrap";
 
   const activeStyle =
     "bg-gradient-to-r from-blue-900 to-cyan-300 text-white shadow";
@@ -17,7 +17,7 @@ export default function Sidebar() {
   const iconStyle = "w-5 h-5 min-w-[20px]";
 
   return (
-    <aside className="w-64 h-90 bg-[#cfd3d7] text-gray-700 backdrop-blur-md border-r border-white/50 p-4 shadow-gray-700 shadow-2xl rounded-3xl m-5">
+    <aside className="w-60 shrink-0 h-fit bg-[#cfd3d7] text-gray-700 backdrop-blur-md border-r border-white/50 p-4 shadow-gray-700 shadow-2xl rounded-3xl m-5">
       
       {/* Logo */}
       <div className="mb-10 mt-6 text-[#111827]">

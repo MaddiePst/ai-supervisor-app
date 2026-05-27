@@ -35,7 +35,7 @@ export default function TaskDrawer({ task, onClose, onSave }) {
       .then((res) => res.json())
       .then((data) => {
         console.log("users response:", data);
-        setUsers(data)
+        setUsers(data);
       })
       .catch(console.error);
   }, []);
@@ -144,11 +144,11 @@ export default function TaskDrawer({ task, onClose, onSave }) {
               className="w-full px-3 py-2 rounded-xl border border-gray-200 text-sm focus:outline-none focus:border-blue-500"
             >
               <option value="">Unassigned</option>
-                {users.map((u) => (
-                  <option key={u.id} value={u.id}>
-                  {u.name}
-                  </option>
-                ))}
+              {users.map((u) => (
+                <option key={u.id} value={u.id}>
+                  {u.full_name}
+                </option>
+              ))}
             </select>
           </div>
 
