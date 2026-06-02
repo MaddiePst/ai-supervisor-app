@@ -12,7 +12,7 @@ export default function Dashboard() {
     <Sidebar/>
     <div className="space-y-6 ml-10 ">
       <h1 className="text-3xl font-bold  mt-8">
-        AI Supervisor Analyzer
+        AI Supervisor Assistant
       </h1>
 <div className="grid grid-cols-2 gap-10">
 
