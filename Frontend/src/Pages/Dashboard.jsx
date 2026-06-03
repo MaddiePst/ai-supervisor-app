@@ -1,7 +1,6 @@
 import React from "react";
 import Sidebar from "../Components/Sidebar";
 import DonutChart from "../Components/Dashboard/DonutChart";
-import TasksSection from "../Components/TasksSection";
 import DeadlineCalendar from "../Components/Dashboard/DeadlineCalendar";
 import StatsCards from "../Components/Dashboard/StatsCards";
 
@@ -18,7 +17,7 @@ export default function Dashboard() {
 
       <StatsCards />
       <DonutChart/>
-      <TasksSection />
+      
       <DeadlineCalendar />
        </div>
     </div>
