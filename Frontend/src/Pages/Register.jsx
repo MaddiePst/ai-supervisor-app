@@ -97,7 +97,7 @@ export default function Register() {
             >
               <option value="">Select role</option>
               <option value="manager">Manager</option>
-              <option value="non-manager">Non-manager</option>
+              <option value="team">Team</option>
             </select>
           </div>
           <InputField

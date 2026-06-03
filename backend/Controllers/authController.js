@@ -1,11 +1,12 @@
 import { supabase, supabaseAdmin } from "../supabaseClient.js";
+import { sendWelcomeEmail } from "../Utils/SendEmail.js";
 
 // ─── REGISTER ────────────────────────────────────────────────────────────────
 export const register = async (req, res) => {
   try {
     const { name, email, password, role } = req.body;
 
-    // 1. Validate required fields
+    // 1. Validate all fields
     if (!name || !email || !password || !role) {
       return res.status(400).json({ message: "All fields are required." });
     }
@@ -20,17 +21,23 @@ export const register = async (req, res) => {
     }
 
     // 2. Map role from frontend value to DB value
-    //    Frontend sends "non-manager", DB stores "non_manager"
-    const roleMap = { manager: "manager", "non-manager": "non_manager" };
+    const roleMap = { manager: "manager", "non-manager": "non_manager", "team": "team" };
     const mappedRole = roleMap[role];
     if (!mappedRole) {
       return res.status(400).json({ message: "Invalid role." });
     }
 
-    // 3. Create user in Supabase Auth (handles password hashing)
+    // 3. Create user in Supabase Auth
+    //    The SQL trigger will automatically create the profiles row
     const { data: authData, error: authError } = await supabase.auth.signUp({
       email,
       password,
+      options: {
+        data: {
+          full_name: name,  // trigger reads this from raw_user_meta_data
+          role: mappedRole,
+        },
+      },
     });
 
     if (authError) {
@@ -42,29 +49,31 @@ export const register = async (req, res) => {
 
     const userId = authData.user.id;
 
-    // 4. Insert profile using admin client (bypasses RLS)
-    const { data: profile, error: profileError } = await supabaseAdmin
+    // 4. Update the profile with the correct role — trigger creates it but
+    //    may not set the role correctly depending on your trigger definition
+    const { error: updateError } = await supabaseAdmin
       .from("profiles")
-      .insert([{
-        id: userId,
-        full_name: name,
-        email,
-        role: mappedRole,
-      }])
-      .select("id, full_name, email, role, created_at")
-      .single();
+      .update({ full_name: name, role: mappedRole })
+      .eq("id", userId);
 
-      console.log("Profile insert result:", { profile, profileError });
+    if (updateError) throw new Error(updateError.message);
 
-    if (profileError) throw new Error(profileError.message);
-
-    // 5. Sign in to get the session token
+    // 5. Sign in to get session token
     const { data: sessionData, error: sessionError } = await supabase.auth.signInWithPassword({
       email,
       password,
     });
 
     if (sessionError) throw new Error(sessionError.message);
+
+    // 6. Fetch the final profile
+    const { data: profile, error: profileError } = await supabaseAdmin
+      .from("profiles")
+      .select("id, full_name, email, role, created_at")
+      .eq("id", userId)
+      .single();
+
+    if (profileError || !profile) throw new Error("Profile not found after registration.");
 
     return res.status(201).json({
       user: {
@@ -91,7 +100,6 @@ export const login = async (req, res) => {
       return res.status(400).json({ message: "Email and password are required." });
     }
 
-    // 1. Sign in with Supabase Auth
     const { data: sessionData, error: authError } = await supabase.auth.signInWithPassword({
       email,
       password,
@@ -101,7 +109,6 @@ export const login = async (req, res) => {
       return res.status(401).json({ message: "Invalid credentials." });
     }
 
-    // 2. Fetch profile using admin client (bypasses RLS)
     const { data: profile, error: profileError } = await supabaseAdmin
       .from("profiles")
       .select("id, full_name, email, role, created_at")
