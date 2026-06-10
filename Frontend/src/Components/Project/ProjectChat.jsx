@@ -1,10 +1,12 @@
 import { Send } from "lucide-react";
 import React, { useEffect, useRef, useState } from "react";
 import ReactMarkdown from "react-markdown";
+import { useAuth } from "../../Context/useAuth";
 
-const API_BASE = "http://localhost:3000/api";
+const API_BASE = import.meta.env.VITE_API + "/api";
 
 export default function ProjectChat({ projectId }) {
+  const { session } = useAuth();
   const [messages, setMessages] = useState([
     {
       role: "assistant",
@@ -32,7 +34,10 @@ export default function ProjectChat({ projectId }) {
     try {
       const res = await fetch(`${API_BASE}/chat/${projectId}`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${session?.access_token}`,
+        },
         body: JSON.stringify({ message: input }),
       });
 

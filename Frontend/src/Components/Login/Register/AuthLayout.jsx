@@ -1,6 +1,5 @@
 import React from "react";
 import NeuralBackground from "./NeuralBackground.jsx";
-import SocialAuthButtons from "./SocialAuthButtons.jsx";
 
 export default function AuthLayout({ children }) {
   return (
@@ -24,7 +23,6 @@ export default function AuthLayout({ children }) {
       <div className="flex flex-col w-full lg:w-1/2 h-screen items-center justify-center p-6">
         <div className="w-full max-w-md">
           {children}
-          <SocialAuthButtons />
         </div>
       </div>
 

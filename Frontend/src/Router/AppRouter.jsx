@@ -8,6 +8,7 @@ import Notifications from "../Components/Settings/Notifications";
 import Profile from "../Components/Settings/Profile";
 import AddProject from "../Pages/AddProject";
 import Candidates from "../Pages/Candidates";
+import CompleteProfile from "../Pages/CompleteProfile";
 import Dashboard from "../Pages/Dashboard";
 import Login from "../Pages/Login";
 import Register from "../Pages/Register";
@@ -20,6 +21,7 @@ export default function AppRouter() {
         <Route path="/" element={<Navigate to="/login" />} />
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
+        <Route path="/complete-profile" element={<CompleteProfile />} />
         <Route path="/auth/callback" element={<AuthCallback />} />
         <Route
           path="/dashboard"

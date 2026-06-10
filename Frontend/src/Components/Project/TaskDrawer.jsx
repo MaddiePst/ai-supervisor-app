@@ -1,10 +1,12 @@
 import { X } from "lucide-react";
 import React, { useEffect, useState } from "react";
 import StatusBadge from "./StatusBadge";
+import { useAuth } from "../../Context/useAuth";
 
-const API_BASE = "http://localhost:3000/api";
+const API_BASE = import.meta.env.VITE_API + "/api";
 
 export default function TaskDrawer({ task, onClose, onSave }) {
+  const { session } = useAuth();
   const [users, setUsers] = useState([]);
   const [form, setForm] = useState({
     title: "",
@@ -31,12 +33,11 @@ export default function TaskDrawer({ task, onClose, onSave }) {
 
   //fetch team members
   useEffect(() => {
-    fetch(`${API_BASE}/users?role=team`)
+    fetch(`${API_BASE}/users?role=team`, {
+      headers: { Authorization: `Bearer ${session?.access_token}` },
+    })
       .then((res) => res.json())
-      .then((data) => {
-        console.log("users response:", data);
-        setUsers(data);
-      })
+      .then((data) => setUsers(data))
       .catch(console.error);
   }, []);
 
@@ -49,7 +50,10 @@ export default function TaskDrawer({ task, onClose, onSave }) {
     try {
       await fetch(`${API_BASE}/tasks/${task.id}`, {
         method: "PUT",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${session?.access_token}`,
+        },
         body: JSON.stringify({
           title: form.title,
           what: form.what,
@@ -64,7 +68,10 @@ export default function TaskDrawer({ task, onClose, onSave }) {
 
       await fetch(`${API_BASE}/tasks/${task.id}/assign`, {
         method: "PATCH",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${session?.access_token}`,
+        },
         body: JSON.stringify({ assigned_to: form.assigned_to }),
       });
 
