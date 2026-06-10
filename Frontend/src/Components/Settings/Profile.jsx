@@ -144,7 +144,7 @@ export default function Profile() {
         {/* Company */}
         <Input
           label="Company"
-          name="Company"
+          name="company"
           value={formData.company}
           onChange={handleChange}
           required
