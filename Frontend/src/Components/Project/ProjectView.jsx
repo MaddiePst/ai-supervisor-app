@@ -4,11 +4,13 @@ import Sidebar from "../../Components/Sidebar";
 import ProjectCard from "../../Components/Project/ProjectCard";
 import ProjectChat from "../../Components/Project/ProjectChat";
 import TaskDrawer from "../../Components/Project/TaskDrawer";
+import { useAuth } from "../../Context/useAuth";
 
-const API_BASE = "http://localhost:3000/api";
+const API_BASE = import.meta.env.VITE_API + "/api";
 
 export default function ProjectView() {
   const { id } = useParams();
+  const { session } = useAuth();
 
   const [project, setProject] = useState(null);
   const [tasks, setTasks] = useState([]);
@@ -18,7 +20,10 @@ export default function ProjectView() {
 
   async function fetchProject() {
     try {
-      const res = await fetch(`${API_BASE}/projects/${id}`);
+      const res = await fetch(`${API_BASE}/projects/${id}`, {
+        headers: { Authorization: `Bearer ${session?.access_token}` },
+      });
+      if (!res.ok) throw new Error("Failed to load project");
       const data = await res.json();
       setProject(data);
       setTasks(data.tasks || []);

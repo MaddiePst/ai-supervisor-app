@@ -3,10 +3,12 @@ import React, { useEffect, useState } from "react";
 import ProjectCard from "../Components/Project/ProjectCard";
 import StatusBadge from "../Components/Project/StatusBadge";
 import Sidebar from "../Components/Sidebar";
+import { useAuth } from "../Context/useAuth";
 
-const API_BASE = "http://localhost:3000/api";
+const API_BASE = import.meta.env.VITE_API + "/api";
 
 export default function AddProject() {
+  const { session } = useAuth();
   const [mode, setMode] = useState("create"); // "create" | "update"
 
   // form state
@@ -27,12 +29,14 @@ export default function AddProject() {
   // fetch projects for update mode
   useEffect(() => {
     if (mode === "update") {
-      fetch(`${API_BASE}/projects`)
+      fetch(`${API_BASE}/projects`, {
+        headers: { Authorization: `Bearer ${session?.access_token}` },
+      })
         .then((r) => r.json())
-        .then(setProjects)
+        .then((data) => setProjects(Array.isArray(data) ? data : []))
         .catch(() => setError("Failed to load projects"));
     }
-  }, [mode]);
+  }, [mode, session]);
 
   // reset when switching modes
   const switchMode = (newMode) => {
@@ -77,25 +81,27 @@ export default function AddProject() {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
+          Authorization: `Bearer ${session?.access_token}`,
         },
-        body: JSON.stringify({
-          name,
-          description,
-        }),
+        body: JSON.stringify({ name, description }),
       });
       if (!projRes.ok) throw new Error("Failed to create project");
       const project = await projRes.json();
 
-      // 2. Upload file
-      const formData = new FormData();
-      formData.append("file", file);
+      // 2. Upload file and generate tasks (optional)
+      let tasks = [];
+      if (file) {
+        const formData = new FormData();
+        formData.append("file", file);
 
-      const uploadRes = await fetch(`${API_BASE}/uploads/${project.id}`, {
-        method: "POST",
-        body: formData,
-      });
-      if (!uploadRes.ok) throw new Error("Failed to upload file");
-      const { tasks } = await uploadRes.json();
+        const uploadRes = await fetch(`${API_BASE}/uploads/${project.id}`, {
+          method: "POST",
+          headers: { Authorization: `Bearer ${session?.access_token}` },
+          body: formData,
+        });
+        if (!uploadRes.ok) throw new Error("Failed to upload file");
+        ({ tasks } = await uploadRes.json());
+      }
 
       setResult({ project, tasks });
     } catch (err) {
@@ -114,17 +120,17 @@ export default function AddProject() {
       const formData = new FormData();
       formData.append("file", file);
 
-      const uploadRes = await fetch(
-        `${API_BASE}/uploads/${selectedProjectId}`,
-        {
-          method: "POST",
-          body: formData,
-        },
-      );
+      const uploadRes = await fetch(`${API_BASE}/uploads/${selectedProjectId}`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${session?.access_token}` },
+        body: formData,
+      });
       if (!uploadRes.ok) throw new Error("Failed to process upload");
 
       // 2. Fetch full project with merged tasks
-      const projRes = await fetch(`${API_BASE}/projects/${selectedProjectId}`);
+      const projRes = await fetch(`${API_BASE}/projects/${selectedProjectId}`, {
+        headers: { Authorization: `Bearer ${session?.access_token}` },
+      });
       const project = await projRes.json();
 
       setResult({ project, tasks: project.tasks });
@@ -135,7 +141,7 @@ export default function AddProject() {
     }
   }
 
-  const canSubmitCreate = name.trim() && file;
+  const canSubmitCreate = name.trim();
   const canSubmitUpdate = selectedProjectId && file;
 
   return (
@@ -264,7 +270,7 @@ export default function AddProject() {
             {/* PDF UPLOAD ZONE */}
             <div>
               <p className="text-sm font-bold text-gray-700 uppercase tracking-wider mb-3">
-                Project Spec (PDF)
+                Project Spec (PDF) <span className="normal-case font-normal text-gray-400">— optional</span>
               </p>
 
               {file ? (

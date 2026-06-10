@@ -1,80 +1,76 @@
-import React, {useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { AuthContext } from "./AuthContext";
-import { loginUser, registerUser, fetchMe } from "../Services/auth";
+import { supabase } from "../Api/supabaseClient";
+
+const API_URL = import.meta.env.VITE_API;
+
+async function fetchProfile(accessToken) {
+  try {
+    const res = await fetch(`${API_URL}/api/users/me`, {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    });
+    if (!res.ok) return null;
+    const data = await res.json();
+    return data.user;
+  } catch {
+    return null;
+  }
+}
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
-  const [token, setToken] = useState(localStorage.getItem("token"));
+  const [session, setSession] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  // Restore session on every page load/refresh
   useEffect(() => {
-    const restoreSession = async () => {
-      const storedToken = localStorage.getItem("token");
-
-      if (!storedToken) {
-        setLoading(false);
-        return;
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
+      setSession(session);
+      if (session) {
+        const profile = await fetchProfile(session.access_token);
+        setUser(profile);
       }
+      setLoading(false);
+    });
 
-      try {
-        const data = await fetchMe(storedToken);
-        setUser(data.user);
-        setToken(storedToken);
-      } catch {
-        // Token is invalid or expired — clear everything
-        localStorage.removeItem("token");
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange(async (event, session) => {
+      setSession(session);
+      if (session) {
+        const profile = await fetchProfile(session.access_token);
+        setUser(profile);
+      } else {
         setUser(null);
-        setToken(null);
-      } finally {
-        setLoading(false);
       }
-    };
+      setLoading(false);
+    });
 
-    restoreSession();
+    return () => subscription.unsubscribe();
   }, []);
 
-  const login = async (email, password) => {
-    const data = await loginUser(email, password);
-    localStorage.setItem("token", data.token);
-    setToken(data.token);
-    setUser(data.user);
-    return data;
-  };
-
-  const register = async (form) => {
-    const data = await registerUser(form);
-    localStorage.setItem("token", data.token);
-    setToken(data.token);
-    setUser(data.user);
-    return data;
-  };
-
-  const logout = () => {
-    localStorage.removeItem("token");
+  const logout = async () => {
+    await supabase.auth.signOut();
     setUser(null);
-    setToken(null);
+    setSession(null);
   };
 
-  const restoreFromToken = async (sessionToken) => {
-    const data = await fetchMe(sessionToken);
-    localStorage.setItem("token", sessionToken);
-    setToken(sessionToken);
-    setUser(data.user);
-    return data;
+  // Re-fetches the profile — call this after role selection to sync state.
+  const refreshProfile = async () => {
+    if (!session) return null;
+    const profile = await fetchProfile(session.access_token);
+    setUser(profile);
+    return profile;
   };
 
   return (
     <AuthContext.Provider
       value={{
         user,
-        token,
+        session,
         loading,
-        isAuthenticated: !!token,
-        login,
-        register,
-        restoreFromToken,
+        isAuthenticated: !!session,
         logout,
+        refreshProfile,
       }}
     >
       {children}
