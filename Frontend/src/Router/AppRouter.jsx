@@ -63,7 +63,7 @@ export default function AppRouter() {
             </ProtectedRoute>
           }
         >
-          <Route index path="profile" element={<Profile />} />
+          <Route path="profile" element={<Profile />} />
           <Route path="notifications" element={<Notifications />} />
           <Route path="appearance" element={<Appearance />} />
         </Route>

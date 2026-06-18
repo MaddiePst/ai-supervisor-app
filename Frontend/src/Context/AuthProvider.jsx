@@ -1,76 +1,109 @@
 import React, { useEffect, useState } from "react";
 import { AuthContext } from "./AuthContext";
-import { supabase } from "../Api/supabaseClient";
+import { loginUser, registerUser, fetchMe } from "../Api/auth";
 
-const API_URL = import.meta.env.VITE_API;
-
-async function fetchProfile(accessToken) {
-  try {
-    const res = await fetch(`${API_URL}/api/users/me`, {
-      headers: { Authorization: `Bearer ${accessToken}` },
-    });
-    if (!res.ok) return null;
-    const data = await res.json();
-    return data.user;
-  } catch {
-    return null;
-  }
-}
+// Helper to fully clear auth state
+const clearAuth = (setUser, setToken, setSession) => {
+  localStorage.removeItem("token");
+  setUser(null);
+  setToken(null);
+  setSession(null);
+};
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
+  // ✅ Start with null, not localStorage — we verify it first before trusting it
+  const [token, setToken] = useState(null);
   const [session, setSession] = useState(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    supabase.auth.getSession().then(async ({ data: { session } }) => {
-      setSession(session);
-      if (session) {
-        const profile = await fetchProfile(session.access_token);
-        setUser(profile);
-      }
-      setLoading(false);
-    });
+    const restoreSession = async () => {
+      const storedToken = localStorage.getItem("token");
 
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange(async (event, session) => {
-      setSession(session);
-      if (session) {
-        const profile = await fetchProfile(session.access_token);
-        setUser(profile);
-      } else {
-        setUser(null);
+      if (!storedToken) {
+        setLoading(false);
+        return;
       }
-      setLoading(false);
-    });
 
-    return () => subscription.unsubscribe();
+      try {
+        const data = await fetchMe(storedToken);
+        // ✅ Only set token in state if backend confirms it's valid
+        setUser(data.user);
+        setToken(storedToken);
+        setSession({ access_token: storedToken });
+      } catch {
+        // Token is invalid or user deleted — clear everything immediately
+        clearAuth(setUser, setToken, setSession);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    restoreSession();
   }, []);
 
-  const logout = async () => {
-    await supabase.auth.signOut();
-    setUser(null);
-    setSession(null);
+  const login = async (email, password) => {
+    const data = await loginUser(email, password);
+    localStorage.setItem("token", data.token);
+    setToken(data.token);
+    setUser(data.user);
+    setSession({ access_token: data.token });
+    return data;
   };
 
-  // Re-fetches the profile — call this after role selection to sync state.
+  const register = async (form) => {
+    const data = await registerUser(form);
+    localStorage.setItem("token", data.token);
+    setToken(data.token);
+    setUser(data.user);
+    setSession({ access_token: data.token });
+    return data;
+  };
+
+  const restoreFromToken = async (sessionToken) => {
+    const data = await fetchMe(sessionToken);
+    localStorage.setItem("token", sessionToken);
+    setToken(sessionToken);
+    setUser(data.user);
+    setSession({ access_token: sessionToken });
+    return data;
+  };
+
   const refreshProfile = async () => {
-    if (!session) return null;
-    const profile = await fetchProfile(session.access_token);
-    setUser(profile);
-    return profile;
+    const storedToken = localStorage.getItem("token");
+    if (!storedToken) return null;
+
+    try {
+      const data = await fetchMe(storedToken);
+      setUser(data.user);
+      // ✅ Also set token and session so CompleteProfile can use session.access_token
+      setToken(storedToken);
+      setSession({ access_token: storedToken });
+      return data.user;
+    } catch {
+      clearAuth(setUser, setToken, setSession);
+      return null;
+    }
+  };
+
+  const logout = () => {
+    clearAuth(setUser, setToken, setSession);
   };
 
   return (
     <AuthContext.Provider
       value={{
         user,
+        token,
         session,
         loading,
-        isAuthenticated: !!session,
-        logout,
+        isAuthenticated: !!token,
+        login,
+        register,
+        restoreFromToken,
         refreshProfile,
+        logout,
       }}
     >
       {children}

@@ -2,11 +2,11 @@ import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import AuthLayout from "../Components/Login/Register/AuthLayout";
 import { useAuth } from "../Context/useAuth";
-import { completeProfile } from "../Services/auth";
+import { completeProfile } from "../Api/auth";
 
 export default function CompleteProfile() {
   const navigate = useNavigate();
-  const { session, isAuthenticated, loading, refreshProfile } = useAuth();
+  const { isAuthenticated, loading, refreshProfile } = useAuth();
 
   const [role, setRole] = useState("");
   const [error, setError] = useState("");
@@ -21,13 +21,24 @@ export default function CompleteProfile() {
   const handleSubmit = async () => {
     setError("");
     if (!role) return setError("Please select a role.");
-
+  
+    const token = localStorage.getItem("token");
+    console.log("Token before completeProfile:", token); // ADD THIS
+  
+    if (!token) {
+      setError("Session expired. Please log in again.");
+      navigate("/login", { replace: true });
+      return;
+    }
+  
     try {
       setSubmitting(true);
-      await completeProfile(session.access_token, role);
+      const result = await completeProfile(token, role);
+      console.log("completeProfile result:", result); // ADD THIS
       await refreshProfile();
       navigate("/settings/profile", { replace: true });
     } catch (err) {
+      console.log("completeProfile error:", err.message); // ADD THIS
       setError(err.message || "Failed to save. Please try again.");
     } finally {
       setSubmitting(false);

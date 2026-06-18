@@ -10,6 +10,21 @@ export default function AuthCallback() {
   useEffect(() => {
     const handleCallback = async () => {
       try {
+        // ✅ Only run this if we actually came from an OAuth redirect
+        // Supabase puts a "code" or "access_token" in the URL after OAuth
+        const hash = window.location.hash;
+        const search = window.location.search;
+        const isOAuthRedirect =
+          hash.includes("access_token") ||
+          search.includes("code=");
+
+        if (!isOAuthRedirect) {
+          // Not an OAuth redirect — someone navigated here directly
+          // Send them to login instead
+          navigate("/login", { replace: true });
+          return;
+        }
+
         const { data, error } = await supabase.auth.getSession();
 
         if (error || !data.session) {
@@ -18,8 +33,9 @@ export default function AuthCallback() {
           return;
         }
 
-        // onAuthStateChange fires automatically; we just need to know if
-        // the user already has a profile with a role.
+        // Store token so fetchMe() inside refreshProfile() can use it
+        localStorage.setItem("token", data.session.access_token);
+
         const profile = await refreshProfile();
 
         if (!profile || !profile.role) {

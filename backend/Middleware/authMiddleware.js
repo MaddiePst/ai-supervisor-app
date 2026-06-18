@@ -1,5 +1,3 @@
-import { supabase } from "../supabaseClient.js";
-
 export const protect = async (req, res, next) => {
   try {
     const authHeader = req.headers.authorization;
@@ -10,8 +8,10 @@ export const protect = async (req, res, next) => {
 
     const token = authHeader.split(" ")[1];
 
-    // Verify the Supabase session token
+  
+    console.log("Token first 30 chars:", token.substring(0, 30));
     const { data, error } = await supabase.auth.getUser(token);
+    console.log("getUser result:", { id: data?.user?.id, error: error?.message });
 
     if (error || !data.user) {
       return res.status(401).json({ message: "Not authorized. Token is invalid or expired." });
