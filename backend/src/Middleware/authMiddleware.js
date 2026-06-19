@@ -1,3 +1,5 @@
+import { supabase } from "../lib/supabaseClient.js";
+
 export const protect = async (req, res, next) => {
   try {
     const authHeader = req.headers.authorization;
@@ -8,10 +10,14 @@ export const protect = async (req, res, next) => {
 
     const token = authHeader.split(" ")[1];
 
-  
-    console.log("Token first 30 chars:", token.substring(0, 30));
+    console.log("AUTH MIDDLEWARE — token received:", token.substring(0, 40));
+
     const { data, error } = await supabase.auth.getUser(token);
-    console.log("getUser result:", { id: data?.user?.id, error: error?.message });
+
+    console.log("AUTH MIDDLEWARE — getUser result:", { 
+      userId: data?.user?.id, 
+      errorMsg: error?.message 
+    });
 
     if (error || !data.user) {
       return res.status(401).json({ message: "Not authorized. Token is invalid or expired." });
@@ -19,7 +25,8 @@ export const protect = async (req, res, next) => {
 
     req.user = { id: data.user.id };
     next();
-  } catch {
+  } catch (err) {
+    console.log("AUTH MIDDLEWARE — caught exception:", err.message);
     return res.status(401).json({ message: "Not authorized." });
   }
 };

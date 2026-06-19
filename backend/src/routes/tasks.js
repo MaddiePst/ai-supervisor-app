@@ -5,8 +5,8 @@ import {
   listTasks,
   updateTask,
   updateTaskStatus,
-} from "../controllers/tasks.controller.js";
-import { requireAuth } from "../middleware/auth.js";
+} from "../Controllers/tasks.controller.js";
+import { requireAuth } from "../Middleware/requireMiddleware.js";
 
 const router = Router();
 

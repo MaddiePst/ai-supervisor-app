@@ -1,4 +1,4 @@
-import { supabase } from "../lib/supabase.js";
+import { supabase } from "../lib/supabaseClient.js";;
 
 export async function listTasks(req, res) {
   try {

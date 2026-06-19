@@ -1,4 +1,4 @@
-import { supabaseAdmin } from "../supabaseClient.js";
+import { supabaseAdmin } from "../lib/supabaseClient.js";;
 
 // ─── GET CURRENT USER ─────────────────────────────────────────────────────────
 export const getMe = async (req, res) => {

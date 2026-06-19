@@ -5,8 +5,8 @@ import {
   getProject,
   listProjects,
   updateProject,
-} from "../controllers/projects.controller.js";
-import { requireAuth, requireRole } from "../middleware/auth.js";
+} from "../Controllers/projects.controller.js";
+import { requireAuth, requireRole } from "../Middleware/requireMiddleware.js";
 
 const router = Router();
 

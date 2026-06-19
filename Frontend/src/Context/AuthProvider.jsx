@@ -4,6 +4,7 @@ import { loginUser, registerUser, fetchMe } from "../Api/auth";
 
 // Helper to fully clear auth state
 const clearAuth = (setUser, setToken, setSession) => {
+  console.trace("clearAuth called — token being removed!"); // TEMP LOG
   localStorage.removeItem("token");
   setUser(null);
   setToken(null);

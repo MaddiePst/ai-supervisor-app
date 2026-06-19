@@ -1,4 +1,4 @@
-import { supabase } from "../lib/supabase.js";
+import { supabase } from "../lib/supabaseClient.js";
 
 // Verifies Supabase token only — does NOT require a profile row.
 // Use on endpoints that run before a profile exists (e.g., complete-profile).

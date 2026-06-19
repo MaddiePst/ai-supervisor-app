@@ -1,6 +1,6 @@
 import { extractText } from "unpdf";
 import { parseNewProject, parseProjectUpdate } from "../agents/parseProject.js";
-import { supabase } from "../lib/supabase.js";
+import { supabase } from "../lib/supabaseClient.js";;
 
 export async function uploadProjectDoc(req, res) {
   const { projectId } = req.params;

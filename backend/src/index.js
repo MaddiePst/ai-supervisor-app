@@ -5,12 +5,12 @@ process.on("uncaughtException", (err) => {
 import cors from "cors";
 import "dotenv/config";
 import express from "express";
-import authRoutes from "./routes/auth.js";
-import chatRoutes from "./routes/chat.js";
-import projectRoutes from "./routes/projects.js";
-import taskRoutes from "./routes/tasks.js";
-import uploadRoutes from "./routes/uploads.js";
-import userRoutes from "./routes/users.js";
+import authRoutes from "./Routes/authRoutes.js";
+import chatRoutes from "./Routes/chat.js";
+import projectRoutes from "./Routes/projects.js";
+import taskRoutes from "./Routes/tasks.js";
+import uploadRoutes from "./Routes/uploads.js";
+import userRoutes from "./Routes/userRoutes.js";
 
 const PORT = process.env.PORT || 3000;
 const app = express();

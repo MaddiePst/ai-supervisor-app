@@ -1,6 +1,6 @@
 import { PromptTemplate } from "@langchain/core/prompts";
 import { embeddings, model } from "../lib/aiConfig.js";
-import { supabase } from "../lib/supabase.js";
+import { supabase } from "../lib/supabaseClient.js";
 
 export async function chatWithProject(req, res) {
   const { projectId } = req.params;

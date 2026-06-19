@@ -1,4 +1,4 @@
-import { supabase, supabaseAdmin } from "../supabaseClient.js";
+import { supabase, supabaseAdmin } from "../lib/supabaseClient.js";
 import { sendWelcomeEmail } from "../Utils/SendEmail.js";
 
 // ─── REGISTER ────────────────────────────────────────────────────────────────
