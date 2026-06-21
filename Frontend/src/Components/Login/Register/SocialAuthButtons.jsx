@@ -3,7 +3,9 @@ import googleIcon from "../../../assets/google.svg";
 import linkedinIcon from "../../../assets/linkedin.svg";
 import { supabase } from "../../../Api/supabaseClient";
 
-export default function SocialAuthButtons() {
+// mode = "login" | "register"
+// Stored before redirecting so AuthCallback knows which flow to enforce
+export default function SocialAuthButtons({ mode }) {
   const [loadingProvider, setLoadingProvider] = useState(null);
   const [error, setError] = useState("");
 
@@ -12,6 +14,9 @@ export default function SocialAuthButtons() {
     setLoadingProvider(provider);
 
     try {
+      // Store intent so AuthCallback can enforce login-only or register-only
+      sessionStorage.setItem("oauth_mode", mode);
+
       const { error } = await supabase.auth.signInWithOAuth({
         provider,
         options: {
@@ -20,8 +25,6 @@ export default function SocialAuthButtons() {
       });
 
       if (error) throw new Error(error.message);
-
-      // Browser redirects to provider — no further code runs here
     } catch (err) {
       setError(err.message || `Failed to connect with ${provider}.`);
       setLoadingProvider(null);
@@ -31,15 +34,19 @@ export default function SocialAuthButtons() {
   return (
     <>
       <div className="mt-2 flex flex-col gap-3">
+        <div className="flex items-center my-1">
+          <hr className="grow border-gray-600" />
+          <span className="px-2 text-gray-400 text-sm">OR</span>
+          <hr className="grow border-gray-600" />
+        </div>
+
         {error && (
           <p className="text-red-400 text-sm bg-red-400/10 border border-red-400/20 rounded-lg px-3 py-2 text-center">
             {error}
           </p>
         )}
 
-        {/* Buttons */}
         <div className="grid grid-cols-2 gap-5">
-          {/* Google */}
           <button
             onClick={() => handleOAuth("google")}
             disabled={!!loadingProvider}
@@ -55,7 +62,6 @@ export default function SocialAuthButtons() {
             )}
           </button>
 
-          {/* LinkedIn */}
           <button
             onClick={() => handleOAuth("linkedin_oidc")}
             disabled={!!loadingProvider}

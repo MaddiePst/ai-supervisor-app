@@ -5,22 +5,16 @@ import { useAuth } from "../Context/useAuth";
 
 export default function AuthCallback() {
   const navigate = useNavigate();
-  const { refreshProfile } = useAuth();
+  const { refreshProfile, logout } = useAuth();
 
   useEffect(() => {
     const handleCallback = async () => {
       try {
-        // ✅ Only run this if we actually came from an OAuth redirect
-        // Supabase puts a "code" or "access_token" in the URL after OAuth
         const hash = window.location.hash;
         const search = window.location.search;
-        const isOAuthRedirect =
-          hash.includes("access_token") ||
-          search.includes("code=");
+        const isOAuthRedirect = hash.includes("access_token") || search.includes("code=");
 
         if (!isOAuthRedirect) {
-          // Not an OAuth redirect — someone navigated here directly
-          // Send them to login instead
           navigate("/login", { replace: true });
           return;
         }
@@ -33,12 +27,33 @@ export default function AuthCallback() {
           return;
         }
 
-        // Store token so fetchMe() inside refreshProfile() can use it
         localStorage.setItem("token", data.session.access_token);
 
         const profile = await refreshProfile();
+        const mode = sessionStorage.getItem("oauth_mode"); // "login" | "register"
+        sessionStorage.removeItem("oauth_mode");
 
-        if (!profile || !profile.role) {
+        // A profile with no role yet means this is a brand-new OAuth signup
+        const isNewUser = !profile || !profile.role;
+
+        if (mode === "login" && isNewUser) {
+          // Tried to log in but no account exists — reject and sign out
+          await supabase.auth.signOut();
+          logout();
+          navigate("/login?error=no_account", { replace: true });
+          return;
+        }
+
+        if (mode === "register" && !isNewUser) {
+          // Tried to register but account already exists — reject and sign out
+          await supabase.auth.signOut();
+          logout();
+          navigate("/register?error=account_exists", { replace: true });
+          return;
+        }
+
+        // Valid flow — continue normally
+        if (isNewUser) {
           navigate("/complete-profile", { replace: true });
         } else {
           navigate("/dashboard", { replace: true });
@@ -50,7 +65,7 @@ export default function AuthCallback() {
     };
 
     handleCallback();
-  }, [navigate, refreshProfile]);
+  }, [navigate, refreshProfile, logout]);
 
   return (
     <div className="min-h-screen bg-[#111827] flex items-center justify-center">

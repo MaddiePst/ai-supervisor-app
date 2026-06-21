@@ -5,6 +5,8 @@ import InputField from "../Components/Login/Register/InputField";
 import SocialAuthButtons from "../Components/Login/Register/SocialAuthButtons";
 import { useAuth } from "../Context/useAuth";
 import { signUpWithEmail, completeProfile } from "../Services/auth";
+import { useSearchParams } from "react-router-dom";
+
 
 export default function Register() {
   const navigate = useNavigate();
@@ -13,6 +15,14 @@ export default function Register() {
   const [form, setForm] = useState({ email: "", password: "", role: "" });
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [searchParams] = useSearchParams();
+
+useEffect(() => {
+  const errorParam = searchParams.get("error");
+  if (errorParam === "account_exists") {
+    setError("An account already exists with that provider. Please log in instead.");
+  }
+}, [searchParams]);
 
   useEffect(() => {
     if (!loading && isAuthenticated) {
@@ -102,7 +112,7 @@ export default function Register() {
           </Link>
         </p>
 
-        <SocialAuthButtons />
+        <SocialAuthButtons mode="register" />
       </div>
     </AuthLayout>
   );

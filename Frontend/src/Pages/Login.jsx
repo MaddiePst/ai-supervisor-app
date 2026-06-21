@@ -5,6 +5,7 @@ import InputField from "../Components/Login/Register/InputField.jsx";
 import SocialAuthButtons from "../Components/Login/Register/SocialAuthButtons.jsx";
 import { useAuth } from "../Context/useAuth";
 import { signInWithEmail } from "../Services/auth";
+import { useSearchParams } from "react-router-dom";
 
 export default function Login() {
   const navigate = useNavigate();
@@ -14,6 +15,14 @@ export default function Login() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [searchParams] = useSearchParams();
+
+useEffect(() => {
+  const errorParam = searchParams.get("error");
+  if (errorParam === "no_account") {
+    setError("No account found with that provider. Please register first.");
+  }
+}, [searchParams]);
 
   useEffect(() => {
     if (!loading && isAuthenticated) {
@@ -74,8 +83,7 @@ export default function Login() {
             Initialize Profile
           </Link>
         </p>
-
-        <SocialAuthButtons />
+<SocialAuthButtons mode="login" />
       </div>
     </AuthLayout>
   );
