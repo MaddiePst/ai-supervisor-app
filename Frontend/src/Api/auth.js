@@ -1,4 +1,4 @@
-const API_URL = import.meta.env.VITE_API;
+const API_URL = import.meta.env.VITE_API_URL;
 
 // ─── REGISTER ─────────────────────────────────────────────────────────────────
 export const registerUser = async (form) => {
@@ -42,14 +42,9 @@ export const loginUser = async (email, password) => {
 // ─── GET CURRENT USER ─────────────────────────────────────────────────────────
 // Called by AuthContext on every page load to restore session from stored token
 export const fetchMe = async (token) => {
-  console.log("fetchMe called with API_URL:", API_URL);
-  console.log("fetchMe full URL:", `${API_URL}/api/users/me`);
-  
   const res = await fetch(`${API_URL}/api/users/me`, {
     headers: { Authorization: `Bearer ${token}` },
   });
-
-  console.log("fetchMe response status:", res.status);
 
   const data = await res.json();
 
@@ -57,7 +52,7 @@ export const fetchMe = async (token) => {
     throw new Error(data.message || "Session expired.");
   }
 
-  return data;
+  return data; // { user }
 };
 
 // ─── COMPLETE PROFILE ─────────────────────────────────────────────────────────
@@ -79,4 +74,21 @@ export const completeProfile = async (token, role) => {
   }
 
   return data;
+};
+
+// ─── DELETE CURRENT USER ──────────────────────────────────────────────────────
+// Used to roll back an OAuth login/register attempt that violated the mode rule
+// (e.g. "log in" with no account, or "register" when an account already exists)
+export const deleteMe = async (token) => {
+  const res = await fetch(`${API_URL}/api/users/me`, {
+    method: "DELETE",
+    headers: { Authorization: `Bearer ${token}` },
+  });
+
+  if (!res.ok) {
+    const data = await res.json();
+    throw new Error(data.message || "Failed to delete user.");
+  }
+
+  return true;
 };

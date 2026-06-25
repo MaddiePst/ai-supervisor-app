@@ -2,45 +2,37 @@ import React, { useEffect, useState } from "react";
 import { AuthContext } from "./AuthContext";
 import { loginUser, registerUser, fetchMe } from "../Api/auth";
 
-// Helper to fully clear auth state
-const clearAuth = (setUser, setToken, setSession) => {
-  console.trace("clearAuth called — token being removed!"); // TEMP LOG
-  localStorage.removeItem("token");
-  setUser(null);
-  setToken(null);
-  setSession(null);
-};
-
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
-  // ✅ Start with null, not localStorage — we verify it first before trusting it
   const [token, setToken] = useState(null);
   const [session, setSession] = useState(null);
   const [loading, setLoading] = useState(true);
 
+  const clearAuth = () => {
+    localStorage.removeItem("token");
+    setUser(null);
+    setToken(null);
+    setSession(null);
+  };
+
   useEffect(() => {
     const restoreSession = async () => {
       const storedToken = localStorage.getItem("token");
-
       if (!storedToken) {
         setLoading(false);
         return;
       }
-
       try {
         const data = await fetchMe(storedToken);
-        // ✅ Only set token in state if backend confirms it's valid
         setUser(data.user);
         setToken(storedToken);
         setSession({ access_token: storedToken });
       } catch {
-        // Token is invalid or user deleted — clear everything immediately
-        clearAuth(setUser, setToken, setSession);
+        clearAuth();
       } finally {
         setLoading(false);
       }
     };
-
     restoreSession();
   }, []);
 
@@ -71,25 +63,24 @@ export function AuthProvider({ children }) {
     return data;
   };
 
-  const refreshProfile = async () => {
-    const storedToken = localStorage.getItem("token");
-    if (!storedToken) return null;
-
+  // ✅ refreshProfile never clears auth — it just returns null on failure
+  // This lets AuthCallback handle the token independently
+  const refreshProfile = async (overrideToken) => {
+    const tokenToUse = overrideToken || localStorage.getItem("token");
+    if (!tokenToUse) return null;
     try {
-      const data = await fetchMe(storedToken);
+      const data = await fetchMe(tokenToUse);
       setUser(data.user);
-      // ✅ Also set token and session so CompleteProfile can use session.access_token
-      setToken(storedToken);
-      setSession({ access_token: storedToken });
+      setToken(tokenToUse);
+      setSession({ access_token: tokenToUse });
       return data.user;
     } catch {
-      clearAuth(setUser, setToken, setSession);
       return null;
     }
   };
 
   const logout = () => {
-    clearAuth(setUser, setToken, setSession);
+    clearAuth();
   };
 
   return (

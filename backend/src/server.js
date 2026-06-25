@@ -14,12 +14,12 @@ app.use(
   cors({
     origin: process.env.CLIENT_URL,
     credentials: true,
-  })
+  }),
 );
 
 // ─── ROUTES ───────────────────────────────────────────────────────────────────
-app.use("/api/auth", authRoutes);   // /api/auth/login  /api/auth/register
-app.use("/api/users", userRoutes);  // /api/users/me
+app.use("/api/auth", authRoutes); // /api/auth/login  /api/auth/register
+app.use("/api/users", userRoutes); // /api/users/me
 
 // ─── GLOBAL ERROR HANDLER ─────────────────────────────────────────────────────
 app.use((err, req, res, next) => {

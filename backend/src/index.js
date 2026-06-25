@@ -12,7 +12,7 @@ import taskRoutes from "./Routes/tasks.js";
 import uploadRoutes from "./Routes/uploads.js";
 import userRoutes from "./Routes/userRoutes.js";
 
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 5000;
 const app = express();
 
 app.use(cors({ origin: "http://localhost:5173" }));
