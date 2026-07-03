@@ -1,13 +1,12 @@
 import React, { useState, useEffect, useCallback } from "react";
+import { X } from "lucide-react";
 import Sidebar from "../Components/Sidebar";
 import CandidateSuggestions from "../Components/Candidate/CandidateSuggestion";
-import { useAuth } from "../Context/useAuth";
 
 const API_BASE = import.meta.env.VITE_API_URL + "/api";
+const getToken = () => localStorage.getItem("token");
 
 export default function Candidates() {
-  const { session } = useAuth();
-
   const [projects, setProjects] = useState([]);
   const [selectedProjectId, setSelectedProjectId] = useState(null);
   const [roles, setRoles] = useState([]);
@@ -17,45 +16,39 @@ export default function Candidates() {
   const [loadingRoles, setLoadingRoles] = useState(false);
   const [error, setError] = useState(null);
 
-  // Fetch all projects on mount
   useEffect(() => {
     fetch(`${API_BASE}/projects`, {
-      headers: { Authorization: `Bearer ${session?.access_token}` },
+      headers: { Authorization: `Bearer ${getToken()}` },
     })
       .then((r) => r.json())
       .then((data) => setProjects(Array.isArray(data) ? data : []))
       .catch(() => setError("Failed to load projects"))
       .finally(() => setLoadingProjects(false));
-  }, [session]);
+  }, []);
 
-  // ✅ Fetch roles as a callback — called imperatively from the click handler
-  const fetchRoles = useCallback(
-    async (projectId) => {
-      setLoadingRoles(true);
-      setError(null);
-      try {
-        const r = await fetch(`${API_BASE}/projects/${projectId}`, {
-          headers: { Authorization: `Bearer ${session?.access_token}` },
-        });
-        const data = await r.json();
-        const projectRoles = (data.roles || []).map((role, i) => ({
-          id: role.id || `role-${i}`,
-          name: role.title || role.name || "Unnamed Role",
-          count: role.count || role.positions || 1,
-          skills: role.skills || [],
-        }));
-        setRoles(projectRoles);
-      } catch {
-        setError("Failed to load project roles");
-        setRoles([]);
-      } finally {
-        setLoadingRoles(false);
-      }
-    },
-    [session]
-  );
+  const fetchRoles = useCallback(async (projectId) => {
+    setLoadingRoles(true);
+    setError(null);
+    try {
+      const r = await fetch(`${API_BASE}/projects/${projectId}`, {
+        headers: { Authorization: `Bearer ${getToken()}` },
+      });
+      const data = await r.json();
+      const projectRoles = (data.roles || []).map((role, i) => ({
+        id: role.id || `role-${i}`,
+        name: role.title || role.name || "Unnamed Role",
+        count: role.count || role.positions || 1,
+        skills: role.skills || [],
+      }));
+      setRoles(projectRoles);
+    } catch {
+      setError("Failed to load project roles");
+      setRoles([]);
+    } finally {
+      setLoadingRoles(false);
+    }
+  }, []);
 
-  // ✅ All state updates happen in the click handler — no useEffect needed for roles
   const handleProjectClick = (projectId) => {
     if (selectedProjectId === projectId) {
       setSelectedProjectId(null);
@@ -67,6 +60,27 @@ export default function Candidates() {
       setSelectedRole(null);
       setHiredMap({});
       fetchRoles(projectId);
+    }
+  };
+
+  // ✅ Delete project — clears selection if it was the selected one
+  const handleDelete = async (e, projectId) => {
+    e.stopPropagation(); // prevent triggering project select
+    if (!confirm("Delete this project? This cannot be undone.")) return;
+    try {
+      await fetch(`${API_BASE}/projects/${projectId}`, {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${getToken()}` },
+      });
+      setProjects((prev) => prev.filter((p) => p.id !== projectId));
+      if (selectedProjectId === projectId) {
+        setSelectedProjectId(null);
+        setRoles([]);
+        setSelectedRole(null);
+        setHiredMap({});
+      }
+    } catch {
+      setError("Failed to delete project");
     }
   };
 
@@ -108,17 +122,28 @@ export default function Candidates() {
           ) : (
             <div className="flex flex-wrap gap-2">
               {projects.map((p) => (
-                <button
-                  key={p.id}
-                  onClick={() => handleProjectClick(p.id)}
-                  className={`px-4 py-2 rounded-xl text-sm font-semibold transition ${
-                    selectedProjectId === p.id
-                      ? "bg-linear-to-r from-blue-900 to-cyan-300 text-white shadow"
-                      : "bg-white text-gray-700 hover:bg-gray-100 shadow"
-                  }`}
-                >
-                  {p.name}
-                </button>
+                // ✅ Each project button has an X delete icon on the right
+                <div key={p.id} className="relative group">
+                  <button
+                    onClick={() => handleProjectClick(p.id)}
+                    className={`pl-4 pr-8 py-2 rounded-xl text-sm font-semibold transition ${
+                      selectedProjectId === p.id
+                        ? "bg-linear-to-r from-blue-900 to-cyan-300 text-white shadow"
+                        : "bg-white text-gray-700 hover:bg-gray-100 shadow"
+                    }`}
+                  >
+                    {p.name}
+                  </button>
+
+                  {/* ✅ X delete button — shows on hover, tooltip says "Delete" */}
+                  <button
+                    onClick={(e) => handleDelete(e, p.id)}
+                    title="Delete"
+                    className="absolute right-1.5 top-1/2 -translate-y-1/2 w-5 h-5 flex items-center justify-center rounded-full opacity-0 group-hover:opacity-100 transition-opacity bg-red-100 hover:bg-red-200 text-red-500"
+                  >
+                    <X className="w-3 h-3" />
+                  </button>
+                </div>
               ))}
             </div>
           )}

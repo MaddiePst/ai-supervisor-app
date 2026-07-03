@@ -29,9 +29,7 @@ export default function AddProject() {
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState(null);
 
-  // Result state — holds what came back from the upload
   const [result, setResult] = useState(null);
-  // Editable copies that the user can modify before saving
   const [editedTasks, setEditedTasks] = useState([]);
   const [editedRoles, setEditedRoles] = useState([]);
 
@@ -79,6 +77,7 @@ export default function AddProject() {
     setError(null);
 
     try {
+      // 1. Create the project
       const projRes = await fetch(`${API_BASE}/projects`, {
         method: "POST",
         headers: {
@@ -93,30 +92,25 @@ export default function AddProject() {
       }
       const project = await projRes.json();
 
-      let tasks = [];
-      let roles = [];
+      // 2. Always call the upload endpoint — with or without a PDF
+      //    If no PDF, backend uses name+description as the AI prompt
+      const formData = new FormData();
+      if (file) formData.append("file", file);
 
-      if (file) {
-        const formData = new FormData();
-        formData.append("file", file);
-
-        const uploadRes = await fetch(`${API_BASE}/uploads/${project.id}`, {
-          method: "POST",
-          headers: { Authorization: `Bearer ${getToken()}` },
-          body: formData,
-        });
-        if (!uploadRes.ok) {
-          const err = await uploadRes.json();
-          throw new Error(err.error || err.message || "Failed to upload file");
-        }
-        const uploadData = await uploadRes.json();
-        tasks = uploadData.tasks || [];
-        roles = uploadData.roles || [];
+      const uploadRes = await fetch(`${API_BASE}/uploads/${project.id}`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${getToken()}` },
+        body: formData,
+      });
+      if (!uploadRes.ok) {
+        const err = await uploadRes.json();
+        throw new Error(err.error || err.message || "Failed to generate tasks");
       }
+      const uploadData = await uploadRes.json();
 
-      setResult({ project, tasks, roles });
-      setEditedTasks(tasks);
-      setEditedRoles(roles);
+      setResult({ project, tasks: uploadData.tasks || [], roles: uploadData.roles || [] });
+      setEditedTasks(uploadData.tasks || []);
+      setEditedRoles(uploadData.roles || []);
     } catch (err) {
       setError(err.message);
     } finally {
@@ -130,7 +124,7 @@ export default function AddProject() {
 
     try {
       const formData = new FormData();
-      formData.append("file", file);
+      if (file) formData.append("file", file);
 
       const uploadRes = await fetch(`${API_BASE}/uploads/${selectedProjectId}`, {
         method: "POST",
@@ -161,7 +155,6 @@ export default function AddProject() {
     }
   }
 
-  // ✅ Save Project — persists edited tasks + roles to DB, redirects to Candidates
   async function handleSaveProject() {
     setIsSaving(true);
     setError(null);
@@ -169,15 +162,15 @@ export default function AddProject() {
     try {
       const projectId = result.project.id;
 
-      // 1. Save edited tasks — update each one that was modified
+      // Save edited tasks
       await Promise.all(
         editedTasks.map(async (task) => {
-          const skills = typeof task.skills === "string"
-            ? task.skills.split(",").map((s) => s.trim()).filter(Boolean)
-            : task.skills || [];
+          const skills =
+            typeof task.skills === "string"
+              ? task.skills.split(",").map((s) => s.trim()).filter(Boolean)
+              : task.skills || [];
 
           if (task._isNew) {
-            // New task — insert
             await fetch(`${API_BASE}/tasks`, {
               method: "POST",
               headers: {
@@ -194,7 +187,6 @@ export default function AddProject() {
               }),
             });
           } else {
-            // Existing task — update
             await fetch(`${API_BASE}/tasks/${task.id}`, {
               method: "PUT",
               headers: {
@@ -213,7 +205,7 @@ export default function AddProject() {
         })
       );
 
-      // 2. Save edited roles
+      // Save edited roles
       await fetch(`${API_BASE}/projects/${projectId}/roles`, {
         method: "PUT",
         headers: {
@@ -223,7 +215,6 @@ export default function AddProject() {
         body: JSON.stringify({ roles: editedRoles }),
       });
 
-      // 3. Redirect to Candidates page
       navigate("/candidates");
     } catch (err) {
       setError(err.message || "Failed to save project.");
@@ -232,7 +223,6 @@ export default function AddProject() {
     }
   }
 
-  // ✅ Skip — delete the project that was auto-created, go back to dashboard
   async function handleSkip() {
     if (result?.project?.id) {
       try {
@@ -241,14 +231,14 @@ export default function AddProject() {
           headers: { Authorization: `Bearer ${getToken()}` },
         });
       } catch {
-        // Silent — best effort cleanup
+        // Silent cleanup
       }
     }
     navigate("/dashboard");
   }
 
   const canSubmitCreate = name.trim();
-  const canSubmitUpdate = selectedProjectId && file;
+  const canSubmitUpdate = selectedProjectId;
 
   return (
     <div className="min-h-screen bg-[#c5c7ca] text-gray-800 flex">
@@ -276,7 +266,7 @@ export default function AddProject() {
           ))}
         </div>
 
-        {/* ── RESULT VIEW ── */}
+        {/* RESULT VIEW */}
         {result ? (
           <div className="space-y-5">
             <div className="px-5 py-3.5 bg-green-100 rounded-xl flex items-center gap-2.5">
@@ -288,13 +278,11 @@ export default function AddProject() {
               </span>
             </div>
 
-            {/* TASKS EDITOR */}
             <TasksEditor
               tasks={editedTasks}
               onSave={(updated) => setEditedTasks(updated)}
             />
 
-            {/* ROLES EDITOR */}
             <RolesEditor
               roles={editedRoles}
               onSave={(updated) => setEditedRoles(updated)}
@@ -307,12 +295,11 @@ export default function AddProject() {
               </div>
             )}
 
-            {/* ✅ Save Project + Skip buttons */}
             <div className="flex gap-3 pt-2">
               <button
                 onClick={handleSaveProject}
                 disabled={isSaving}
-                className="px-11 py-3.5 rounded-xl bg-linear-to-r from-blue-900 to-cyan-300 text-white font-bold shadow-lg disabled:opacity-50 transition"
+                className="px-6 py-3.5 rounded-xl bg-linear-to-r from-blue-900 to-cyan-300 text-white font-bold shadow-lg disabled:opacity-50 transition"
               >
                 {isSaving ? "Saving..." : "Save Project"}
               </button>
@@ -326,8 +313,8 @@ export default function AddProject() {
             </div>
           </div>
         ) : (
-          /* ── FORM VIEW ── */
           <div className="space-y-6">
+            {/* CREATE FORM */}
             {mode === "create" && (
               <div className="space-y-4">
                 <p className="text-sm font-bold text-gray-700 uppercase tracking-wider">
@@ -335,21 +322,22 @@ export default function AddProject() {
                 </p>
                 <input
                   type="text"
-                  placeholder="Project name (auto-filled when you drop a PDF)"
+                  placeholder="Project name"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   className="w-full px-4 py-3 rounded-xl border-[1.5px] border-gray-300 bg-white text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500/10 outline-none"
                 />
                 <textarea
-                  placeholder="Description (optional)"
+                  placeholder="Description — the more detail you add, the better the AI-generated tasks"
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
-                  rows={3}
+                  rows={4}
                   className="w-full px-4 py-3 rounded-xl border-[1.5px] border-gray-300 bg-white text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500/10 outline-none resize-none"
                 />
               </div>
             )}
 
+            {/* UPDATE — PROJECT SELECTOR */}
             {mode === "update" && (
               <div>
                 <p className="text-sm font-bold text-gray-700 uppercase tracking-wider mb-3">
@@ -370,11 +358,15 @@ export default function AddProject() {
                         }`}
                       >
                         <div className="flex items-center justify-between">
-                          <span className="font-semibold text-sm text-gray-800">{p.name}</span>
+                          <span className="font-semibold text-sm text-gray-800">
+                            {p.name}
+                          </span>
                           <StatusBadge status={p.status} />
                         </div>
                         {p.description && (
-                          <p className="text-xs text-gray-400 mt-1 truncate">{p.description}</p>
+                          <p className="text-xs text-gray-400 mt-1 truncate">
+                            {p.description}
+                          </p>
                         )}
                       </div>
                     ))
@@ -383,15 +375,13 @@ export default function AddProject() {
               </div>
             )}
 
-            {/* PDF UPLOAD */}
+            {/* PDF UPLOAD — optional */}
             <div>
               <p className="text-sm font-bold text-gray-700 uppercase tracking-wider mb-3">
                 Project Spec (PDF){" "}
-                {mode === "create" && (
-                  <span className="normal-case font-normal text-gray-400">
-                    — optional, auto-fills project name
-                  </span>
-                )}
+                <span className="normal-case font-normal text-gray-400">
+                  — optional, improves AI accuracy
+                </span>
               </p>
 
               {file ? (
@@ -400,7 +390,9 @@ export default function AddProject() {
                     <FileText className="w-8 h-8 text-red-500" />
                     <div>
                       <p className="text-sm font-semibold text-gray-800">{file.name}</p>
-                      <p className="text-xs text-gray-400">{(file.size / 1024).toFixed(1)} KB</p>
+                      <p className="text-xs text-gray-400">
+                        {(file.size / 1024).toFixed(1)} KB
+                      </p>
                     </div>
                   </div>
                   <button

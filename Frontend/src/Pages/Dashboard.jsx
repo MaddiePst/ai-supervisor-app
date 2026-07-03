@@ -4,24 +4,42 @@ import StatsCards from "../Components/Dashboard/StatsCards";
 import DonutChart from "../Components/Dashboard/DonutChart";
 import DeadlineCalendar from "../Components/Dashboard/DeadlineCalendar";
 import ProjectList from "../Components/Dashboard/ProjectList";
-import { useAuth } from "../Context/useAuth";
 
-const API_BASE = import.meta.env.VITE_API + "/api";
+// ✅ Fixed: VITE_API_URL matches .env, removed session dependency
+const API_BASE = import.meta.env.VITE_API_URL + "/api";
+const getToken = () => localStorage.getItem("token");
 
 export default function Dashboard() {
-  const { session } = useAuth();
   const [projects, setProjects] = useState([]);
   const [selectedProject, setSelectedProject] = useState(null);
 
-  useEffect(() => {
-    if (!session?.access_token) return;
+  const fetchProjects = () => {
     fetch(`${API_BASE}/projects`, {
-      headers: { Authorization: `Bearer ${session.access_token}` },
+      headers: { Authorization: `Bearer ${getToken()}` },
     })
       .then((r) => r.json())
       .then((data) => setProjects(Array.isArray(data) ? data : []))
       .catch(console.error);
-  }, [session]);
+  };
+
+  useEffect(() => {
+    fetchProjects();
+  }, []);
+
+  const handleDelete = async (projectId) => {
+    if (!confirm("Delete this project? This cannot be undone.")) return;
+    try {
+      await fetch(`${API_BASE}/projects/${projectId}`, {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${getToken()}` },
+      });
+      // Remove from state and clear selection if it was selected
+      setProjects((prev) => prev.filter((p) => p.id !== projectId));
+      if (selectedProject?.id === projectId) setSelectedProject(null);
+    } catch {
+      console.error("Failed to delete project");
+    }
+  };
 
   const deadlineEvents = projects
     .filter((p) => p.deadline)
@@ -47,6 +65,7 @@ export default function Dashboard() {
               projects={projects}
               selectedId={selectedProject?.id}
               onSelect={setSelectedProject}
+              onDelete={handleDelete}
             />
           </div>
 

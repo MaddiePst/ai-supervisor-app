@@ -1,4 +1,4 @@
-import { ArrowRight } from "lucide-react";
+import { ArrowRight, X } from "lucide-react";
 import React from "react";
 import { useNavigate } from "react-router-dom";
 import StatusBadge from "../Project/StatusBadge";
@@ -10,7 +10,7 @@ function getProgress(tasks = []) {
   );
 }
 
-export default function ProjectList({ projects = [], selectedId, onSelect }) {
+export default function ProjectList({ projects = [], selectedId, onSelect, onDelete }) {
   const navigate = useNavigate();
 
   return (
@@ -29,14 +29,28 @@ export default function ProjectList({ projects = [], selectedId, onSelect }) {
             <div
               key={p.id}
               onClick={() => onSelect(isSelected ? null : p)}
-              className={`bg-white/70 rounded-2xl p-4 shadow cursor-pointer transition border-2 ${
+              className={`relative group bg-white/70 rounded-2xl p-4 shadow cursor-pointer transition border-2 ${
                 isSelected
                   ? "border-blue-500"
                   : "border-transparent hover:border-gray-200"
               }`}
             >
+              {/* ✅ Delete button — top right corner, shows on hover */}
+              {onDelete && (
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onDelete(p.id);
+                  }}
+                  title="Delete"
+                  className="absolute top-2 right-2 w-6 h-6 flex items-center justify-center rounded-full opacity-0 group-hover:opacity-100 transition-opacity bg-red-100 hover:bg-red-200 text-red-500 z-10"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              )}
+
               <div className="flex items-center justify-between mb-2">
-                <div className="flex items-center gap-2 min-w-0">
+                <div className="flex items-center gap-2 min-w-0 pr-6">
                   <span className="font-semibold text-gray-900 text-sm truncate">
                     {p.name}
                   </span>
@@ -55,7 +69,7 @@ export default function ProjectList({ projects = [], selectedId, onSelect }) {
 
               <div className="w-full bg-gray-200 rounded-full h-1.5 mb-2">
                 <div
-                  className="bg-gradient-to-r from-blue-900 to-cyan-500 h-1.5 rounded-full transition-all duration-500"
+                  className="bg-linear-to-r from-blue-900 to-cyan-500 h-1.5 rounded-full transition-all duration-500"
                   style={{ width: `${progress}%` }}
                 />
               </div>
