@@ -3,22 +3,20 @@ import React, { useEffect, useRef, useState } from "react";
 import ReactMarkdown from "react-markdown";
 import { useAuth } from "../../Context/useAuth";
 
-const API_BASE = import.meta.env.VITE_API + "/api";
+const API_BASE = import.meta.env.VITE_API_URL + "/api";
 
 export default function ProjectChat({ projectId }) {
   const { session } = useAuth();
   const [messages, setMessages] = useState([
     {
       role: "assistant",
-      content:
-        "Hi! I'm your project assistant. Ask me anything about this project.",
+      content: "Hi! I'm your project assistant. Ask me anything about this project.",
     },
   ]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const bottomRef = useRef(null);
 
-  //auto scroll to bottom on new msg
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
@@ -42,18 +40,14 @@ export default function ProjectChat({ projectId }) {
       });
 
       const data = await res.json();
-
       setMessages((prev) => [
         ...prev,
         { role: "assistant", content: data.response },
       ]);
-    } catch (err) {
+    } catch {
       setMessages((prev) => [
         ...prev,
-        {
-          role: "assistant",
-          content: "Sorry, something went wrong. Please try again.",
-        },
+        { role: "assistant", content: "Sorry, something went wrong. Please try again." },
       ]);
     } finally {
       setIsLoading(false);
@@ -62,35 +56,24 @@ export default function ProjectChat({ projectId }) {
 
   return (
     <div className="flex flex-col h-full bg-white/70 rounded-2xl shadow-lg overflow-hidden">
-      {/* HEADER */}
       <div className="px-4 py-4 border-b border-gray-100">
         <h3 className="font-bold text-gray-900">Project Assistant</h3>
-        <p className="text-xs text-gray-400 mt-0.5">
-          Ask anything about this project
-        </p>
+        <p className="text-xs text-gray-400 mt-0.5">Ask anything about this project</p>
       </div>
 
-      {/* MESSAGES */}
       <div className="flex-1 overflow-y-auto px-4 py-4 space-y-3">
         {messages.map((msg, i) => (
-          <div
-            key={i}
-            className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}
-          >
-            <div
-              className={`max-w-[85%] px-3 py-2 rounded-2xl text-sm ${
-                msg.role === "user"
-                  ? "bg-gradient-to-r from-blue-900 to-cyan-500 text-white rounded-br-sm"
-                  : "bg-gray-100 text-gray-800 rounded-bl-sm"
-              }`}
-            >
+          <div key={i} className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
+            <div className={`max-w-[85%] px-3 py-2 rounded-2xl text-sm ${
+              msg.role === "user"
+                ? "bg-linear-to-r from-blue-900 to-cyan-500 text-white rounded-br-sm"
+                : "bg-gray-100 text-gray-800 rounded-bl-sm"
+            }`}>
               {msg.role === "assistant" ? (
                 <div className="prose prose-sm max-w-none">
                   <ReactMarkdown>{msg.content}</ReactMarkdown>
                 </div>
-              ) : (
-                msg.content
-              )}
+              ) : msg.content}
             </div>
           </div>
         ))}
@@ -106,11 +89,9 @@ export default function ProjectChat({ projectId }) {
             </div>
           </div>
         )}
-
         <div ref={bottomRef} />
       </div>
 
-      {/* INPUT */}
       <div className="px-4 py-3 border-t border-gray-100">
         <div className="flex items-center gap-2 bg-gray-100 rounded-xl px-3 py-2">
           <input
@@ -125,9 +106,7 @@ export default function ProjectChat({ projectId }) {
             onClick={sendMessage}
             disabled={!input.trim() || isLoading}
             className={`transition ${
-              input.trim() && !isLoading
-                ? "text-blue-900 hover:text-cyan-600"
-                : "text-gray-300"
+              input.trim() && !isLoading ? "text-blue-900 hover:text-cyan-600" : "text-gray-300"
             }`}
           >
             <Send className="w-4 h-4" />

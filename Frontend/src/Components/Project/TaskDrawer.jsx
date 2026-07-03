@@ -1,45 +1,50 @@
 import { X } from "lucide-react";
-import React, { useEffect, useState } from "react";
+import React, { useState, useEffect, useMemo, useCallback } from "react";
 import StatusBadge from "./StatusBadge";
 import { useAuth } from "../../Context/useAuth";
 
-const API_BASE = import.meta.env.VITE_API + "/api";
+const API_BASE = import.meta.env.VITE_API_URL + "/api";
 
 export default function TaskDrawer({ task, onClose, onSave }) {
   const { session } = useAuth();
   const [users, setUsers] = useState([]);
-  const [form, setForm] = useState({
-    title: "",
-    what: "",
-    how: "",
-    skills: "",
-    status: "not_started",
-    assigned_to: null,
-  });
 
-  //populate form when task changes
+  // ✅ useMemo derives the form value from the task prop — no useEffect needed
+  const initialForm = useMemo(
+    () => ({
+      title: task?.title || "",
+      what: task?.what || "",
+      how: task?.how || "",
+      skills: task?.skills?.join(", ") || "",
+      status: task?.status || "not_started",
+      assigned_to: task?.assigned_to || null,
+    }),
+    [task]
+  );
+
+  const [form, setForm] = useState(initialForm);
+
+  // Keep form in sync when task changes (e.g. drawer opened for a different task)
   useEffect(() => {
-    if (task) {
-      setForm({
-        title: task.title || "",
-        what: task.what || "",
-        how: task.how || "",
-        skills: task.skills?.join(", ") || "",
-        status: task.status || "not_started",
-        assigned_to: task.assigned_to || null,
+    setForm(initialForm);
+  }, [initialForm]);
+
+  // Fetch team members — this is a genuine external data fetch, fine in useEffect
+  const fetchUsers = useCallback(async () => {
+    try {
+      const res = await fetch(`${API_BASE}/users?role=team`, {
+        headers: { Authorization: `Bearer ${session?.access_token}` },
       });
+      const data = await res.json();
+      setUsers(Array.isArray(data) ? data : []);
+    } catch (err) {
+      console.error("Failed to fetch users:", err);
     }
-  }, [task]);
+  }, [session]);
 
-  //fetch team members
   useEffect(() => {
-    fetch(`${API_BASE}/users?role=team`, {
-      headers: { Authorization: `Bearer ${session?.access_token}` },
-    })
-      .then((res) => res.json())
-      .then((data) => setUsers(data))
-      .catch(console.error);
-  }, []);
+    fetchUsers();
+  }, [fetchUsers]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -58,10 +63,7 @@ export default function TaskDrawer({ task, onClose, onSave }) {
           title: form.title,
           what: form.what,
           how: form.how,
-          skills: form.skills
-            .split(",")
-            .map((s) => s.trim())
-            .filter(Boolean),
+          skills: form.skills.split(",").map((s) => s.trim()).filter(Boolean),
           status: form.status,
         }),
       });
@@ -86,25 +88,17 @@ export default function TaskDrawer({ task, onClose, onSave }) {
 
   return (
     <>
-      {/* BACKDROP */}
       <div className="fixed inset-0 bg-black/20 z-40" onClick={onClose} />
 
-      {/* DRAWER */}
-      <div className="fixed top-0 right-0 h-full w-[420px] bg-white shadow-2xl z-50 flex flex-col">
-        {/* HEADER */}
+      <div className="fixed top-0 right-0 h-full w-105 bg-white shadow-2xl z-50 flex flex-col">
         <div className="flex items-center justify-between px-6 py-5 border-b border-gray-100">
           <h2 className="font-bold text-gray-900">Edit Task</h2>
-          <button
-            onClick={onClose}
-            className="text-gray-400 hover:text-gray-600 transition"
-          >
+          <button onClick={onClose} className="text-gray-400 hover:text-gray-600 transition">
             <X className="w-5 h-5" />
           </button>
         </div>
 
-        {/* BODY */}
         <div className="flex-1 overflow-y-auto px-6 py-5 space-y-5">
-          {/* TITLE */}
           <div>
             <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1 block">
               Title
@@ -117,7 +111,6 @@ export default function TaskDrawer({ task, onClose, onSave }) {
             />
           </div>
 
-          {/* STATUS */}
           <div>
             <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-2 block">
               Status
@@ -139,7 +132,6 @@ export default function TaskDrawer({ task, onClose, onSave }) {
             </div>
           </div>
 
-          {/* ASSIGN */}
           <div>
             <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1 block">
               Assigned To
@@ -159,7 +151,6 @@ export default function TaskDrawer({ task, onClose, onSave }) {
             </select>
           </div>
 
-          {/* WHAT */}
           <div>
             <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1 block">
               What
@@ -173,7 +164,6 @@ export default function TaskDrawer({ task, onClose, onSave }) {
             />
           </div>
 
-          {/* HOW */}
           <div>
             <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1 block">
               How
@@ -187,7 +177,6 @@ export default function TaskDrawer({ task, onClose, onSave }) {
             />
           </div>
 
-          {/* SKILLS */}
           <div>
             <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1 block">
               Skills (comma separated)
@@ -202,11 +191,10 @@ export default function TaskDrawer({ task, onClose, onSave }) {
           </div>
         </div>
 
-        {/* FOOTER */}
         <div className="px-6 py-4 border-t border-gray-100">
           <button
             onClick={handleSave}
-            className="w-full py-3 rounded-xl bg-gradient-to-r from-blue-900 to-cyan-300 text-white font-bold shadow-lg"
+            className="w-full py-3 rounded-xl bg-linear-to-r from-blue-900 to-cyan-300 text-white font-bold shadow-lg"
           >
             Save Changes
           </button>

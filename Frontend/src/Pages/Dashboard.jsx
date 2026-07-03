@@ -41,7 +41,7 @@ export default function Dashboard() {
 
         <StatsCards projects={projects} />
 
-        <div className="flex gap-6 h-[700px]">
+        <div className="flex gap-6 h-175">
           <div className="w-2/5 h-full overflow-y-auto pr-1">
             <ProjectList
               projects={projects}

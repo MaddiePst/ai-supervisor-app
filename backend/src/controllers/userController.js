@@ -22,15 +22,38 @@ export const getMe = async (req, res) => {
         created_at: profile.created_at,
       },
     });
-  } catch (error) {
-    console.error("getMe error:", error.message);
+  } catch (err) {
+    console.error("getMe error:", err.message);
+    return res.status(500).json({ message: "Something went wrong." });
+  }
+};
+
+// ─── LIST USERS ───────────────────────────────────────────────────────────────
+export const listUsers = async (req, res) => {
+  try {
+    const { role } = req.query;
+
+    let query = supabaseAdmin
+      .from("profiles")
+      .select("id, full_name, email, role");
+
+    if (role) {
+      query = query.eq("role", role);
+    }
+
+    const { data, error } = await query.order("full_name", { ascending: true });
+
+    if (error) throw error;
+
+    return res.json(data);
+  } catch (err) {
+    console.error("listUsers error:", err.message);
     return res.status(500).json({ message: "Something went wrong." });
   }
 };
 
 // ─── COMPLETE PROFILE ─────────────────────────────────────────────────────────
 // Called by OAuth users (Google/LinkedIn) who need to pick a role
-// after signing in for the first time
 export const completeProfile = async (req, res) => {
   try {
     const { role } = req.body;
@@ -70,25 +93,21 @@ export const completeProfile = async (req, res) => {
         created_at: profile.created_at,
       },
     });
-  } catch (error) {
-    console.error("completeProfile error:", error.message);
+  } catch (err) {
+    console.error("completeProfile error:", err.message);
     return res.status(500).json({ message: "Something went wrong." });
   }
 };
 
-// ─── DELETE OAUTH USER (mode mismatch) ────────────────────────────────────────
-// Called when someone tries to "log in" via OAuth with no existing account,
-// or tries to "register" via OAuth with an account that already exists.
-// Removes the auth.users row — profiles row cascades automatically.
+// ─── DELETE OAUTH USER ────────────────────────────────────────────────────────
+// Called to roll back invalid OAuth login/register attempts
 export const deleteOAuthUser = async (req, res) => {
   try {
-    console.log("deleteOAuthUser called for user:", req.user.id);
     const { error } = await supabaseAdmin.auth.admin.deleteUser(req.user.id);
-    console.log("deleteUser result:", error ? error.message : "success");
     if (error) throw new Error(error.message);
     return res.json({ success: true });
-  } catch (error) {
-    console.error("deleteOAuthUser error:", error.message);
+  } catch (err) {
+    console.error("deleteOAuthUser error:", err.message);
     return res.status(500).json({ message: "Something went wrong." });
   }
 };

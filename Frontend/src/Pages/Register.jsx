@@ -1,57 +1,57 @@
 import React, { useState, useEffect } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import AuthLayout from "../Components/Login/Register/AuthLayout";
 import InputField from "../Components/Login/Register/InputField";
 import SocialAuthButtons from "../Components/Login/Register/SocialAuthButtons";
 import { useAuth } from "../Context/useAuth";
-import { signUpWithEmail, completeProfile } from "../Services/auth";
-import { useSearchParams } from "react-router-dom";
-
 
 export default function Register() {
   const navigate = useNavigate();
-  const { isAuthenticated, loading, session, refreshProfile } = useAuth();
+  const { register, isAuthenticated, loading } = useAuth();
+  const [searchParams] = useSearchParams();
 
   const [form, setForm] = useState({ email: "", password: "", role: "" });
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
-  const [searchParams] = useSearchParams();
 
-useEffect(() => {
-  const errorParam = searchParams.get("error");
-  if (errorParam === "account_exists") {
-    setError("An account already exists with that provider. Please log in instead.");
-  }
-}, [searchParams]);
+  // Show error from OAuth callback redirect (e.g. ?error=account_exists)
+  useEffect(() => {
+    const errorParam = searchParams.get("error");
+    if (errorParam === "account_exists") {
+      setError("An account already exists with that provider. Please log in instead.");
+    }
+  }, [searchParams]);
 
+  // Redirect if already logged in
   useEffect(() => {
     if (!loading && isAuthenticated) {
       navigate("/settings/profile", { replace: true });
     }
   }, [isAuthenticated, loading, navigate]);
 
-  const update = (field) => (e) => setForm((prev) => ({ ...prev, [field]: e.target.value }));
+  const update = (field) => (e) =>
+    setForm((prev) => ({ ...prev, [field]: e.target.value }));
 
   const handleRegister = async () => {
     setError("");
     if (!form.email.trim()) return setError("Please enter your email.");
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) return setError("Please enter a valid email.");
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email))
+      return setError("Please enter a valid email.");
     if (!form.role) return setError("Please select a role.");
     if (!form.password) return setError("Please enter a password.");
-    if (form.password.length < 6) return setError("Password must be at least 6 characters.");
+    if (form.password.length < 6)
+      return setError("Password must be at least 6 characters.");
 
     try {
       setSubmitting(true);
-      const newSession = await signUpWithEmail(form.email.trim(), form.password);
-
-      if (!newSession) {
-        // Email confirmation is enabled — user needs to verify before continuing
-        setError("Check your email to confirm your account, then log in.");
-        return;
-      }
-
-      await completeProfile(newSession.access_token, form.role);
-      await refreshProfile();
+      // register() calls backend POST /api/auth/register which handles
+      // Supabase signUp + profile creation + token generation in one step
+      await register({
+        email: form.email.trim(),
+        password: form.password,
+        role: form.role,
+        full_name: form.email.split("@")[0], // default name, user can update in settings
+      });
       navigate("/settings/profile", { replace: true });
     } catch (err) {
       setError(err.message || "Registration failed. Please try again.");
@@ -68,12 +68,20 @@ useEffect(() => {
 
   return (
     <AuthLayout>
-      <div className="w-full max-w-md bg-[#111827] p-2 mt-2 text-gray-300" onKeyDown={handleKeyDown}>
+      <div
+        className="w-full max-w-md bg-[#111827] p-2 mt-2 text-gray-300"
+        onKeyDown={handleKeyDown}
+      >
         <h2 className="text-2xl font-bold mb-1">Create Profile</h2>
         <p className="mb-2">Initialize your AI-powered workspace</p>
 
         <div className="space-y-3">
-          <InputField label="Email" type="email" value={form.email} onChange={update("email")} />
+          <InputField
+            label="Email"
+            type="email"
+            value={form.email}
+            onChange={update("email")}
+          />
 
           <div className="flex flex-col text-gray-300">
             <label className="mb-1 text-sm font-medium">Select your role</label>
@@ -88,7 +96,12 @@ useEffect(() => {
             </select>
           </div>
 
-          <InputField label="Password" type="password" value={form.password} onChange={update("password")} />
+          <InputField
+            label="Password"
+            type="password"
+            value={form.password}
+            onChange={update("password")}
+          />
 
           {error && (
             <p className="text-red-400 text-sm bg-red-400/10 border border-red-400/20 rounded-lg px-3 py-2">
@@ -97,7 +110,7 @@ useEffect(() => {
           )}
 
           <button
-            className="w-full bg-linear-to-r from-blue-900 to-cyan-300 hover:-translate-y-px active:-translate-y-px transition transform py-3 rounded-xl font-semibold text-white"
+            className="w-full bg-linear-to-r from-blue-900 to-cyan-300 hover:-translate-y-px active:-translate-y-px transition transform py-3 rounded-xl font-semibold text-white disabled:opacity-50"
             onClick={handleRegister}
             disabled={submitting}
           >

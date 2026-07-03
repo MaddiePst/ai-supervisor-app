@@ -1,44 +1,51 @@
 import { CheckCircle, FileText, Upload, XCircle } from "lucide-react";
 import React, { useEffect, useState } from "react";
-import ProjectCard from "../Components/Project/ProjectCard";
+import { useNavigate } from "react-router-dom";
+import RolesEditor from "../Components/Project/RolesEditor";
 import StatusBadge from "../Components/Project/StatusBadge";
+import TasksEditor from "../Components/Project/TasksEditor";
 import Sidebar from "../Components/Sidebar";
-import { useAuth } from "../Context/useAuth";
 
-const API_BASE = import.meta.env.VITE_API + "/api";
+const API_BASE = import.meta.env.VITE_API_URL + "/api";
+
+const nameFromFile = (filename) =>
+  filename.replace(/\.[^/.]+$/, "").replace(/[-_]/g, " ");
+
+const getToken = () => localStorage.getItem("token");
 
 export default function AddProject() {
-  const { session } = useAuth();
-  const [mode, setMode] = useState("create"); // "create" | "update"
+  const navigate = useNavigate();
+  const [mode, setMode] = useState("create");
 
-  // form state
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [file, setFile] = useState(null);
   const [dragActive, setDragActive] = useState(false);
 
-  // update mode
   const [projects, setProjects] = useState([]);
   const [selectedProjectId, setSelectedProjectId] = useState(null);
 
-  // async state
   const [isProcessing, setIsProcessing] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState(null);
-  const [result, setResult] = useState(null); // { project, tasks }
 
-  // fetch projects for update mode
+  // Result state — holds what came back from the upload
+  const [result, setResult] = useState(null);
+  // Editable copies that the user can modify before saving
+  const [editedTasks, setEditedTasks] = useState([]);
+  const [editedRoles, setEditedRoles] = useState([]);
+
   useEffect(() => {
     if (mode === "update") {
       fetch(`${API_BASE}/projects`, {
-        headers: { Authorization: `Bearer ${session?.access_token}` },
+        headers: { Authorization: `Bearer ${getToken()}` },
       })
         .then((r) => r.json())
         .then((data) => setProjects(Array.isArray(data) ? data : []))
         .catch(() => setError("Failed to load projects"));
     }
-  }, [mode, session]);
+  }, [mode]);
 
-  // reset when switching modes
   const switchMode = (newMode) => {
     setMode(newMode);
     setName("");
@@ -47,63 +54,69 @@ export default function AddProject() {
     setSelectedProjectId(null);
     setError(null);
     setResult(null);
+    setEditedTasks([]);
+    setEditedRoles([]);
   };
 
-  //file handling
   const handleFile = (selectedFile) => {
-    if (selectedFile && selectedFile.type === "application/pdf") {
-      setFile(selectedFile);
-    } else {
+    if (!selectedFile) return;
+    if (selectedFile.type !== "application/pdf") {
       alert("Please upload a PDF file");
+      return;
     }
+    setFile(selectedFile);
+    if (!name.trim()) setName(nameFromFile(selectedFile.name));
   };
 
   const handleDrop = (e) => {
     e.preventDefault();
     setDragActive(false);
-    const droppedFile = e.dataTransfer.files[0];
-    handleFile(droppedFile);
+    handleFile(e.dataTransfer.files[0]);
   };
 
-  const handleChange = (e) => {
-    const selectedFile = e.target.files[0];
-    handleFile(selectedFile);
-  };
-
-  // create/update project
   async function handleCreate() {
     setIsProcessing(true);
     setError(null);
 
     try {
-      // 1. Create project
       const projRes = await fetch(`${API_BASE}/projects`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${session?.access_token}`,
+          Authorization: `Bearer ${getToken()}`,
         },
         body: JSON.stringify({ name, description }),
       });
-      if (!projRes.ok) throw new Error("Failed to create project");
+      if (!projRes.ok) {
+        const err = await projRes.json();
+        throw new Error(err.error || err.message || "Failed to create project");
+      }
       const project = await projRes.json();
 
-      // 2. Upload file and generate tasks (optional)
       let tasks = [];
+      let roles = [];
+
       if (file) {
         const formData = new FormData();
         formData.append("file", file);
 
         const uploadRes = await fetch(`${API_BASE}/uploads/${project.id}`, {
           method: "POST",
-          headers: { Authorization: `Bearer ${session?.access_token}` },
+          headers: { Authorization: `Bearer ${getToken()}` },
           body: formData,
         });
-        if (!uploadRes.ok) throw new Error("Failed to upload file");
-        ({ tasks } = await uploadRes.json());
+        if (!uploadRes.ok) {
+          const err = await uploadRes.json();
+          throw new Error(err.error || err.message || "Failed to upload file");
+        }
+        const uploadData = await uploadRes.json();
+        tasks = uploadData.tasks || [];
+        roles = uploadData.roles || [];
       }
 
-      setResult({ project, tasks });
+      setResult({ project, tasks, roles });
+      setEditedTasks(tasks);
+      setEditedRoles(roles);
     } catch (err) {
       setError(err.message);
     } finally {
@@ -116,29 +129,122 @@ export default function AddProject() {
     setError(null);
 
     try {
-      // 1. Upload PDF to existing project
       const formData = new FormData();
       formData.append("file", file);
 
       const uploadRes = await fetch(`${API_BASE}/uploads/${selectedProjectId}`, {
         method: "POST",
-        headers: { Authorization: `Bearer ${session?.access_token}` },
+        headers: { Authorization: `Bearer ${getToken()}` },
         body: formData,
       });
-      if (!uploadRes.ok) throw new Error("Failed to process upload");
+      if (!uploadRes.ok) {
+        const err = await uploadRes.json();
+        throw new Error(err.error || err.message || "Failed to process upload");
+      }
+      const uploadData = await uploadRes.json();
 
-      // 2. Fetch full project with merged tasks
       const projRes = await fetch(`${API_BASE}/projects/${selectedProjectId}`, {
-        headers: { Authorization: `Bearer ${session?.access_token}` },
+        headers: { Authorization: `Bearer ${getToken()}` },
       });
       const project = await projRes.json();
 
-      setResult({ project, tasks: project.tasks });
+      const tasks = project.tasks || [];
+      const roles = uploadData.roles || project.roles || [];
+
+      setResult({ project, tasks, roles });
+      setEditedTasks(tasks);
+      setEditedRoles(roles);
     } catch (err) {
       setError(err.message);
     } finally {
       setIsProcessing(false);
     }
+  }
+
+  // ✅ Save Project — persists edited tasks + roles to DB, redirects to Candidates
+  async function handleSaveProject() {
+    setIsSaving(true);
+    setError(null);
+
+    try {
+      const projectId = result.project.id;
+
+      // 1. Save edited tasks — update each one that was modified
+      await Promise.all(
+        editedTasks.map(async (task) => {
+          const skills = typeof task.skills === "string"
+            ? task.skills.split(",").map((s) => s.trim()).filter(Boolean)
+            : task.skills || [];
+
+          if (task._isNew) {
+            // New task — insert
+            await fetch(`${API_BASE}/tasks`, {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${getToken()}`,
+              },
+              body: JSON.stringify({
+                project_id: projectId,
+                title: task.title,
+                what: task.what,
+                how: task.how,
+                skills,
+                status: task.status,
+              }),
+            });
+          } else {
+            // Existing task — update
+            await fetch(`${API_BASE}/tasks/${task.id}`, {
+              method: "PUT",
+              headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${getToken()}`,
+              },
+              body: JSON.stringify({
+                title: task.title,
+                what: task.what,
+                how: task.how,
+                skills,
+                status: task.status,
+              }),
+            });
+          }
+        })
+      );
+
+      // 2. Save edited roles
+      await fetch(`${API_BASE}/projects/${projectId}/roles`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${getToken()}`,
+        },
+        body: JSON.stringify({ roles: editedRoles }),
+      });
+
+      // 3. Redirect to Candidates page
+      navigate("/candidates");
+    } catch (err) {
+      setError(err.message || "Failed to save project.");
+    } finally {
+      setIsSaving(false);
+    }
+  }
+
+  // ✅ Skip — delete the project that was auto-created, go back to dashboard
+  async function handleSkip() {
+    if (result?.project?.id) {
+      try {
+        await fetch(`${API_BASE}/projects/${result.project.id}`, {
+          method: "DELETE",
+          headers: { Authorization: `Bearer ${getToken()}` },
+        });
+      } catch {
+        // Silent — best effort cleanup
+      }
+    }
+    navigate("/dashboard");
   }
 
   const canSubmitCreate = name.trim();
@@ -149,87 +255,101 @@ export default function AddProject() {
       <Sidebar />
 
       <div className="flex-1 p-8 max-w-3xl">
-        {/* PAGE TITLE */}
         <h1 className="text-3xl font-bold text-gray-900 tracking-tight mb-6">
           {mode === "create" ? "Create Project" : "Update Project"}
         </h1>
 
         {/* MODE TOGGLE */}
         <div className="flex gap-0 mb-7 bg-gray-200 rounded-xl p-1 w-fit">
-          <button
-            onClick={() => switchMode("create")}
-            className={
-              mode === "create"
-                ? "px-6 py-2.5 rounded-[10px] text-sm font-semibold bg-gradient-to-r from-blue-900 to-cyan-300 text-white shadow-md"
-                : "px-6 py-2.5 rounded-[10px] text-sm font-semibold bg-transparent text-gray-500 cursor-pointer"
-            }
-          >
-            Create Project
-          </button>
-          <button
-            onClick={() => switchMode("update")}
-            className={
-              mode === "update"
-                ? "px-6 py-2.5 rounded-[10px] text-sm font-semibold bg-gradient-to-r from-blue-900 to-cyan-300 text-white shadow-md"
-                : "px-6 py-2.5 rounded-[10px] text-sm font-semibold bg-transparent text-gray-500 cursor-pointer"
-            }
-          >
-            Update Project
-          </button>
+          {["create", "update"].map((m) => (
+            <button
+              key={m}
+              onClick={() => switchMode(m)}
+              className={
+                mode === m
+                  ? "px-6 py-2.5 rounded-[10px] text-sm font-semibold bg-linear-to-r from-blue-900 to-cyan-300 text-white shadow-md"
+                  : "px-6 py-2.5 rounded-[10px] text-sm font-semibold bg-transparent text-gray-500 cursor-pointer"
+              }
+            >
+              {m === "create" ? "Create Project" : "Update Project"}
+            </button>
+          ))}
         </div>
 
-        {/* RESULT VIEW */}
+        {/* ── RESULT VIEW ── */}
         {result ? (
           <div className="space-y-5">
-            {/* SUCCESS BANNER */}
             <div className="px-5 py-3.5 bg-green-100 rounded-xl flex items-center gap-2.5">
               <CheckCircle className="w-5 h-5 text-green-600" />
               <span className="text-green-800 font-medium text-sm">
                 {mode === "create"
-                  ? `Project created with ${result.tasks?.length || 0} tasks`
-                  : `Project updated — ${result.tasks?.length || 0} tasks`}
+                  ? `Project created — ${editedTasks.length} tasks · ${editedRoles.length} roles`
+                  : `Project updated — ${editedTasks.length} tasks · ${editedRoles.length} roles`}
               </span>
             </div>
 
-            {/* PROJECT CARD */}
-            <ProjectCard project={result.project} tasks={result.tasks || []} />
+            {/* TASKS EDITOR */}
+            <TasksEditor
+              tasks={editedTasks}
+              onSave={(updated) => setEditedTasks(updated)}
+            />
 
-            {/* RESET BUTTON */}
-            <button
-              onClick={() => switchMode(mode)}
-              className="px-8 py-3.5 rounded-xl bg-gradient-to-r from-blue-900 to-cyan-300 text-white font-bold shadow-lg"
-            >
-              {mode === "create" ? "Create Another" : "Upload Another Update"}
-            </button>
-          </div>
-        ) : (
-          <div className="space-y-6">
-            {/* CREATE FORM */}
-            {mode === "create" && (
-              <div className="space-y-4">
-                <div>
-                  <p className="text-sm font-bold text-gray-700 uppercase tracking-wider mb-3">
-                    Project Details
-                  </p>
-                  <input
-                    type="text"
-                    placeholder="Project name"
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    className="w-full px-4 py-3 rounded-xl border-[1.5px] border-gray-300 bg-white text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500/10 outline-none mb-3"
-                  />
-                  <textarea
-                    placeholder="Description (optional)"
-                    value={description}
-                    onChange={(e) => setDescription(e.target.value)}
-                    rows={3}
-                    className="w-full px-4 py-3 rounded-xl border-[1.5px] border-gray-300 bg-white text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500/10 outline-none resize-none"
-                  />
-                </div>
+            {/* ROLES EDITOR */}
+            <RolesEditor
+              roles={editedRoles}
+              onSave={(updated) => setEditedRoles(updated)}
+            />
+
+            {error && (
+              <div className="px-5 py-3.5 bg-red-100 rounded-xl flex items-center gap-2.5 text-red-800">
+                <XCircle className="w-5 h-5 text-red-500" />
+                <span className="text-sm font-medium">{error}</span>
               </div>
             )}
 
-            {/* UPDATE — PROJECT SELECTOR */}
+            {/* ✅ Save Project + Skip buttons */}
+            <div className="flex gap-3 pt-2">
+              <button
+                onClick={handleSaveProject}
+                disabled={isSaving}
+                className="px-11 py-3.5 rounded-xl bg-linear-to-r from-blue-900 to-cyan-300 text-white font-bold shadow-lg disabled:opacity-50 transition"
+              >
+                {isSaving ? "Saving..." : "Save Project"}
+              </button>
+              <button
+                onClick={handleSkip}
+                disabled={isSaving}
+                className="px-8 py-3.5 rounded-xl bg-white border border-gray-300 text-gray-600 font-semibold hover:bg-gray-50 transition disabled:opacity-50"
+              >
+                Skip
+              </button>
+            </div>
+          </div>
+        ) : (
+          /* ── FORM VIEW ── */
+          <div className="space-y-6">
+            {mode === "create" && (
+              <div className="space-y-4">
+                <p className="text-sm font-bold text-gray-700 uppercase tracking-wider">
+                  Project Details
+                </p>
+                <input
+                  type="text"
+                  placeholder="Project name (auto-filled when you drop a PDF)"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  className="w-full px-4 py-3 rounded-xl border-[1.5px] border-gray-300 bg-white text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500/10 outline-none"
+                />
+                <textarea
+                  placeholder="Description (optional)"
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                  rows={3}
+                  className="w-full px-4 py-3 rounded-xl border-[1.5px] border-gray-300 bg-white text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500/10 outline-none resize-none"
+                />
+              </div>
+            )}
+
             {mode === "update" && (
               <div>
                 <p className="text-sm font-bold text-gray-700 uppercase tracking-wider mb-3">
@@ -250,15 +370,11 @@ export default function AddProject() {
                         }`}
                       >
                         <div className="flex items-center justify-between">
-                          <span className="font-semibold text-sm text-gray-800">
-                            {p.name}
-                          </span>
+                          <span className="font-semibold text-sm text-gray-800">{p.name}</span>
                           <StatusBadge status={p.status} />
                         </div>
                         {p.description && (
-                          <p className="text-xs text-gray-400 mt-1 truncate">
-                            {p.description}
-                          </p>
+                          <p className="text-xs text-gray-400 mt-1 truncate">{p.description}</p>
                         )}
                       </div>
                     ))
@@ -267,23 +383,24 @@ export default function AddProject() {
               </div>
             )}
 
-            {/* PDF UPLOAD ZONE */}
+            {/* PDF UPLOAD */}
             <div>
               <p className="text-sm font-bold text-gray-700 uppercase tracking-wider mb-3">
-                Project Spec (PDF) <span className="normal-case font-normal text-gray-400">— optional</span>
+                Project Spec (PDF){" "}
+                {mode === "create" && (
+                  <span className="normal-case font-normal text-gray-400">
+                    — optional, auto-fills project name
+                  </span>
+                )}
               </p>
 
               {file ? (
-                <div className="h-auto border-2 border-green-500 bg-green-50 px-6 py-4 rounded-2xl flex items-center justify-between">
+                <div className="border-2 border-green-500 bg-green-50 px-6 py-4 rounded-2xl flex items-center justify-between">
                   <div className="flex items-center gap-3">
                     <FileText className="w-8 h-8 text-red-500" />
                     <div>
-                      <p className="text-sm font-semibold text-gray-800">
-                        {file.name}
-                      </p>
-                      <p className="text-xs text-gray-400">
-                        {(file.size / 1024).toFixed(1)} KB
-                      </p>
+                      <p className="text-sm font-semibold text-gray-800">{file.name}</p>
+                      <p className="text-xs text-gray-400">{(file.size / 1024).toFixed(1)} KB</p>
                     </div>
                   </div>
                   <button
@@ -296,16 +413,11 @@ export default function AddProject() {
               ) : (
                 <label
                   htmlFor="pdfUpload"
-                  onDragOver={(e) => {
-                    e.preventDefault();
-                    setDragActive(true);
-                  }}
+                  onDragOver={(e) => { e.preventDefault(); setDragActive(true); }}
                   onDragLeave={() => setDragActive(false)}
                   onDrop={handleDrop}
                   className={`h-44 border-2 border-dashed rounded-2xl flex flex-col items-center justify-center cursor-pointer transition ${
-                    dragActive
-                      ? "border-blue-500 bg-blue-50"
-                      : "border-slate-400 bg-slate-50"
+                    dragActive ? "border-blue-500 bg-blue-50" : "border-slate-400 bg-slate-50"
                   }`}
                 >
                   <input
@@ -316,17 +428,12 @@ export default function AddProject() {
                     id="pdfUpload"
                   />
                   <Upload className="w-10 h-10 text-slate-400 mx-auto mb-2" />
-                  <p className="text-sm font-semibold text-gray-600">
-                    Drop your PDF here
-                  </p>
-                  <p className="text-xs text-gray-400 mt-1">
-                    or click to browse
-                  </p>
+                  <p className="text-sm font-semibold text-gray-600">Drop your PDF here</p>
+                  <p className="text-xs text-gray-400 mt-1">or click to browse</p>
                 </label>
               )}
             </div>
 
-            {/* ERROR BANNER */}
             {error && (
               <div className="px-5 py-3.5 bg-red-100 rounded-xl flex items-center gap-2.5 text-red-800">
                 <XCircle className="w-5 h-5 text-red-500" />
@@ -334,20 +441,19 @@ export default function AddProject() {
               </div>
             )}
 
-            {/* SUBMIT BUTTON */}
             <button
               onClick={mode === "create" ? handleCreate : handleUpdate}
               disabled={mode === "create" ? !canSubmitCreate : !canSubmitUpdate}
               className={`w-full px-8 py-3.5 rounded-xl font-bold shadow-lg transition ${
                 (mode === "create" ? canSubmitCreate : canSubmitUpdate)
-                  ? "bg-gradient-to-r from-blue-900 to-cyan-300 text-white"
+                  ? "bg-linear-to-r from-blue-900 to-cyan-300 text-white"
                   : "bg-gray-300 text-gray-400 cursor-not-allowed shadow-none"
               }`}
             >
               {isProcessing
                 ? "Processing..."
                 : mode === "create"
-                  ? "Create Project"
+                  ? "Upload Project"
                   : "Update Project"}
             </button>
           </div>
