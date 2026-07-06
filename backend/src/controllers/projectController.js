@@ -1,12 +1,40 @@
-import { supabase, supabaseAdmin } from "../lib/supabaseClient.js";
+import { supabaseAdmin } from "../lib/supabaseClient.js";
 
 // ─── LIST PROJECTS ────────────────────────────────────────────────────────────
+// Managers see their own projects
+// Team members see projects they are hired into
 export async function listProjects(req, res) {
   try {
-    const { data, error } = await supabaseAdmin
-      .from("projects")
-      .select("*, tasks(id, status, skills, assigned_to)")
-      .order("created_at", { ascending: false });
+    const userId = req.user.id;
+    const userRole = req.user.role;
+
+    let data, error;
+
+    if (userRole === "manager") {
+      ({ data, error } = await supabaseAdmin
+        .from("projects")
+        .select("*, tasks(id, status, skills, assigned_to, role_id, role_title)")
+        .eq("owner_id", userId)
+        .order("created_at", { ascending: false }));
+    } else {
+      // Team member — get projects they are hired into
+      const { data: memberships } = await supabaseAdmin
+        .from("project_members")
+        .select("project_id")
+        .eq("user_id", userId);
+
+      const projectIds = (memberships || []).map((m) => m.project_id);
+
+      if (projectIds.length === 0) {
+        return res.json([]);
+      }
+
+      ({ data, error } = await supabaseAdmin
+        .from("projects")
+        .select("*, tasks(id, status, skills, assigned_to, role_id, role_title)")
+        .in("id", projectIds)
+        .order("created_at", { ascending: false }));
+    }
 
     if (error) throw error;
     res.json(data);
@@ -20,11 +48,7 @@ export async function getProject(req, res) {
   try {
     const { data, error } = await supabaseAdmin
       .from("projects")
-      .select(`
-        *,
-        tasks (*),
-        uploads (id, filename, file_url, created_at)
-      `)
+      .select(`*, tasks (*), uploads (id, filename, file_url, created_at)`)
       .eq("id", req.params.id)
       .single();
 
@@ -56,19 +80,6 @@ export async function createProject(req, res) {
 
 // ─── UPDATE PROJECT ───────────────────────────────────────────────────────────
 export async function updateProject(req, res) {
-  if (req.user.role === "team") {
-    const { data: tasks } = await supabaseAdmin
-      .from("tasks")
-      .select("id")
-      .eq("project_id", req.params.id)
-      .eq("assigned_to", req.user.id)
-      .limit(1);
-
-    if (!tasks || tasks.length === 0) {
-      return res.status(403).json({ message: "You are not assigned to this project." });
-    }
-  }
-
   const { name, description, status } = req.body;
 
   try {
@@ -87,7 +98,6 @@ export async function updateProject(req, res) {
 }
 
 // ─── UPDATE PROJECT ROLES ─────────────────────────────────────────────────────
-// Called when user edits roles in RolesEditor and saves
 export async function updateProjectRoles(req, res) {
   const { roles } = req.body;
 

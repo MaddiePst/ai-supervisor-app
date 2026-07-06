@@ -6,20 +6,27 @@ function deriveStatus(tasks) {
   if (!tasks || tasks.length === 0) return "not_started";
   const complete = tasks.filter((t) => t.status === "complete").length;
   if (complete === tasks.length) return "complete";
-  if (complete > 0 || tasks.some((t) => t.status === "in_progress"))
-    return "in_progress";
+  if (complete > 0 || tasks.some((t) => t.status === "in_progress")) return "in_progress";
   return "not_started";
 }
 
-export default function ProjectCard({ project, tasks = [], editable = false, onTaskClick }) {
+export default function ProjectCard({
+  project,
+  tasks = [],
+  editable = false,
+  onTaskClick,
+  // ✅ New props for role-based access
+  userRoleIds = [],      // role IDs the current user is hired into on this project
+  isManager = false,
+  onStatusChange,        // callback(taskId, newStatus)
+}) {
   const [expandedId, setExpandedId] = useState(null);
 
   const completedCount = tasks.filter((t) => t.status === "complete").length;
-  const inProgressCount = tasks.filter(
-    (t) => t.status === "in_progress",
-  ).length;
-  const progressPercent =
-    tasks.length > 0 ? Math.round((completedCount / tasks.length) * 100) : 0;
+  const inProgressCount = tasks.filter((t) => t.status === "in_progress").length;
+  const progressPercent = tasks.length > 0
+    ? Math.round((completedCount / tasks.length) * 100)
+    : 0;
   const overallStatus = deriveStatus(tasks);
 
   const handleToggle = (task) => {
@@ -38,21 +45,15 @@ export default function ProjectCard({ project, tasks = [], editable = false, onT
           <div>
             <h2 className="text-lg font-bold text-gray-900">{project.name}</h2>
             {project.description && (
-              <p className="text-sm text-gray-500 mt-1">
-                {project.description}
-              </p>
+              <p className="text-sm text-gray-500 mt-1">{project.description}</p>
             )}
           </div>
           <StatusBadge status={overallStatus} />
         </div>
-
-        {/* PROGRESS BAR */}
         <div className="mt-4">
           <div className="flex justify-between items-center mb-1.5">
             <span className="text-xs text-gray-400">Progress</span>
-            <span className="text-xs font-semibold text-gray-600">
-              {progressPercent}%
-            </span>
+            <span className="text-xs font-semibold text-gray-600">{progressPercent}%</span>
           </div>
           <div className="w-full bg-gray-200 rounded-full h-2">
             <div
@@ -70,26 +71,28 @@ export default function ProjectCard({ project, tasks = [], editable = false, onT
             No tasks yet — upload a project spec to generate tasks
           </p>
         ) : (
-          tasks.map((task) => (
-            <TaskItem
-              key={task.id}
-              task={task}
-              isExpanded={expandedId === task.id}
-              onToggle={() => handleToggle(task)}
-            />
-          ))
+          tasks.map((task) => {
+            // ✅ Team members can update status only if hired into this task's role
+            const canUpdateStatus = isManager || userRoleIds.includes(task.role_id);
+
+            return (
+              <TaskItem
+                key={task.id}
+                task={task}
+                isExpanded={expandedId === task.id}
+                onToggle={() => handleToggle(task)}
+                canUpdateStatus={canUpdateStatus}
+                onStatusChange={onStatusChange}
+              />
+            );
+          })
         )}
       </div>
 
-      {/* FOOTER */}
       {tasks.length > 0 && (
         <div className="px-6 py-3 border-t border-gray-100 bg-gray-50 flex items-center justify-between">
-          <span className="text-xs text-gray-500">
-            {completedCount} of {tasks.length} tasks complete
-          </span>
-          <span className="text-xs text-gray-500">
-            {inProgressCount} in progress
-          </span>
+          <span className="text-xs text-gray-500">{completedCount} of {tasks.length} tasks complete</span>
+          <span className="text-xs text-gray-500">{inProgressCount} in progress</span>
         </div>
       )}
     </div>
