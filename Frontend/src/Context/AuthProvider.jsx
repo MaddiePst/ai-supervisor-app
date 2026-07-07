@@ -16,12 +16,15 @@ export function AuthProvider({ children }) {
   useEffect(() => {
     const restoreSession = async () => {
       const storedToken = localStorage.getItem("token");
+      console.log("restoreSession — token exists:", !!storedToken);
       if (!storedToken) { setLoading(false); return; }
       try {
         const data = await fetchMe(storedToken);
+        console.log("restoreSession — fetchMe result:", data);
         setUser(data.user);
         setToken(storedToken);
-      } catch {
+      } catch (err) {
+        console.log("restoreSession — fetchMe failed:", err.message);
         clearAuth();
       } finally {
         setLoading(false);

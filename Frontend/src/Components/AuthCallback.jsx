@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "../Api/supabaseClient";
 import { deleteMe } from "../Api/auth";
@@ -7,8 +7,12 @@ import { useAuth } from "../Context/useAuth";
 export default function AuthCallback() {
   const navigate = useNavigate();
   const { refreshProfile, logout } = useAuth();
+  const hasRun = useRef(false);
 
   useEffect(() => {
+    if (hasRun.current) return;
+    hasRun.current = true;
+
     const handleCallback = async () => {
       try {
         const hash = window.location.hash;
@@ -30,16 +34,15 @@ export default function AuthCallback() {
 
         const accessToken = data.session.access_token;
 
-        // Check profile WITHOUT storing token yet — so we can roll back cleanly
-        const profile = await refreshProfile(accessToken);
-        const mode = sessionStorage.getItem("oauth_mode"); // "login" | "register"
+        // Read mode before any async calls
+        const mode = sessionStorage.getItem("oauth_mode");
         sessionStorage.removeItem("oauth_mode");
 
-        // New user = no role set yet (trigger creates profile with role=null)
+        // Check profile with override token — doesn't store in localStorage yet
+        const profile = await refreshProfile(accessToken);
         const isNewUser = !profile || !profile.role;
 
         if (mode === "login" && isNewUser) {
-          // Tried to log in but no account existed — delete and reject
           try { await deleteMe(accessToken); } catch { /* best effort */ }
           await supabase.auth.signOut();
           logout();
@@ -48,21 +51,22 @@ export default function AuthCallback() {
         }
 
         if (mode === "register" && !isNewUser) {
-          // Tried to register but account already exists — reject without deleting
           await supabase.auth.signOut();
           logout();
           navigate("/register?error=account_exists", { replace: true });
           return;
         }
 
-        // ✅ Valid flow — store the token now
+        // ✅ Valid flow — store token in localStorage first
         localStorage.setItem("token", accessToken);
 
+        // ✅ Now call refreshProfile WITHOUT override so it updates context state
+        // This sets user + token in AuthProvider so ProtectedRoute lets us through
+        await refreshProfile();
+
         if (isNewUser) {
-          // New OAuth user — needs to pick a role
           navigate("/complete-profile", { replace: true });
         } else {
-          // Existing user — go straight to dashboard
           navigate("/dashboard", { replace: true });
         }
       } catch (err) {
@@ -72,7 +76,7 @@ export default function AuthCallback() {
     };
 
     handleCallback();
-  }, [navigate, refreshProfile, logout]);
+  }, []);
 
   return (
     <div className="min-h-screen bg-[#111827] flex items-center justify-center">
