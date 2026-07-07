@@ -13,14 +13,10 @@ export function AuthProvider({ children }) {
     setToken(null);
   };
 
-  // Restore session on page load
   useEffect(() => {
     const restoreSession = async () => {
       const storedToken = localStorage.getItem("token");
-      if (!storedToken) {
-        setLoading(false);
-        return;
-      }
+      if (!storedToken) { setLoading(false); return; }
       try {
         const data = await fetchMe(storedToken);
         setUser(data.user);
@@ -34,7 +30,6 @@ export function AuthProvider({ children }) {
     restoreSession();
   }, []);
 
-  // Email/password login — goes through backend
   const login = async (email, password) => {
     const data = await loginUser(email, password);
     localStorage.setItem("token", data.token);
@@ -43,7 +38,6 @@ export function AuthProvider({ children }) {
     return data;
   };
 
-  // Email/password register — goes through backend
   const register = async (form) => {
     const data = await registerUser(form);
     localStorage.setItem("token", data.token);
@@ -52,14 +46,11 @@ export function AuthProvider({ children }) {
     return data;
   };
 
-  // Called by AuthCallback after OAuth redirect — token comes from Supabase
-  // Does NOT store token until we know the flow is valid
   const refreshProfile = async (overrideToken) => {
     const tokenToUse = overrideToken || localStorage.getItem("token");
     if (!tokenToUse) return null;
     try {
       const data = await fetchMe(tokenToUse);
-      // Only update state if no override — override means we haven't validated yet
       if (!overrideToken) {
         setUser(data.user);
         setToken(tokenToUse);
@@ -68,6 +59,12 @@ export function AuthProvider({ children }) {
     } catch {
       return null;
     }
+  };
+
+  // ✅ Called by Profile.jsx after saving — updates user in context immediately
+  // so avatar and name changes reflect everywhere without a page refresh
+  const updateUser = (updatedFields) => {
+    setUser((prev) => ({ ...prev, ...updatedFields }));
   };
 
   const logout = () => clearAuth();
@@ -82,6 +79,7 @@ export function AuthProvider({ children }) {
         login,
         register,
         refreshProfile,
+        updateUser,
         logout,
       }}
     >

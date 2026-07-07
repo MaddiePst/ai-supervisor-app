@@ -1,11 +1,12 @@
 import { supabaseAdmin } from "../lib/supabaseClient.js";
 
-// ─── GET CURRENT USER ─────────────────────────────────────────────────────────
+// ─── GET CURRENT USER (used by AuthContext) ───────────────────────────────────
+// ✅ Now includes avatar_url so the rest of the app can show the profile image
 export const getMe = async (req, res) => {
   try {
     const { data: profile, error } = await supabaseAdmin
       .from("profiles")
-      .select("id, full_name, email, role, created_at")
+      .select("id, full_name, email, role, avatar_url, created_at")
       .eq("id", req.user.id)
       .single();
 
@@ -19,6 +20,7 @@ export const getMe = async (req, res) => {
         name: profile.full_name,
         email: profile.email,
         role: profile.role,
+        avatar_url: profile.avatar_url || null,
         created_at: profile.created_at,
       },
     });
@@ -28,23 +30,86 @@ export const getMe = async (req, res) => {
   }
 };
 
+// ─── GET FULL PROFILE (Settings page) ────────────────────────────────────────
+export const getProfile = async (req, res) => {
+  try {
+    const { data: profile, error } = await supabaseAdmin
+      .from("profiles")
+      .select("*")
+      .eq("id", req.user.id)
+      .single();
+
+    if (error || !profile) {
+      return res.status(404).json({ message: "Profile not found." });
+    }
+
+    return res.json({ profile });
+  } catch (err) {
+    console.error("getProfile error:", err.message);
+    return res.status(500).json({ message: "Something went wrong." });
+  }
+};
+
+// ─── UPDATE PROFILE ───────────────────────────────────────────────────────────
+export const updateProfile = async (req, res) => {
+  try {
+    const {
+      full_name,
+      company,
+      industry,
+      country,
+      time_zone,
+      experience,
+      headline,
+      description,
+      skills,
+      availability,
+      avatar_url,
+    } = req.body;
+
+    let normalizedSkills = skills;
+    if (typeof skills === "string") {
+      normalizedSkills = skills.split(",").map((s) => s.trim()).filter(Boolean);
+    }
+
+    const { data: profile, error } = await supabaseAdmin
+      .from("profiles")
+      .update({
+        full_name,
+        company,
+        industry,
+        country,
+        time_zone,
+        experience: experience ? parseInt(experience) : null,
+        headline,
+        description,
+        skills: normalizedSkills,
+        availability,
+        avatar_url,
+      })
+      .eq("id", req.user.id)
+      .select("*")
+      .single();
+
+    if (error || !profile) {
+      return res.status(400).json({ message: error?.message || "Update failed." });
+    }
+
+    return res.json({ profile });
+  } catch (err) {
+    console.error("updateProfile error:", err.message);
+    return res.status(500).json({ message: "Something went wrong." });
+  }
+};
+
 // ─── LIST USERS ───────────────────────────────────────────────────────────────
 export const listUsers = async (req, res) => {
   try {
     const { role } = req.query;
-
-    let query = supabaseAdmin
-      .from("profiles")
-      .select("id, full_name, email, role");
-
-    if (role) {
-      query = query.eq("role", role);
-    }
-
+    let query = supabaseAdmin.from("profiles").select("id, full_name, email, role, avatar_url, skills, headline");
+    if (role) query = query.eq("role", role);
     const { data, error } = await query.order("full_name", { ascending: true });
-
     if (error) throw error;
-
     return res.json(data);
   } catch (err) {
     console.error("listUsers error:", err.message);
@@ -52,32 +117,21 @@ export const listUsers = async (req, res) => {
   }
 };
 
-// ─── COMPLETE PROFILE ─────────────────────────────────────────────────────────
-// Called by OAuth users (Google/LinkedIn) who need to pick a role
+// ─── COMPLETE PROFILE (OAuth users picking a role) ───────────────────────────
 export const completeProfile = async (req, res) => {
   try {
     const { role } = req.body;
+    if (!role) return res.status(400).json({ message: "Role is required." });
 
-    if (!role) {
-      return res.status(400).json({ message: "Role is required." });
-    }
-
-    const roleMap = {
-      manager: "manager",
-      "non-manager": "non_manager",
-      team: "team",
-    };
+    const roleMap = { manager: "manager", "non-manager": "team", team: "team" };
     const mappedRole = roleMap[role];
-
-    if (!mappedRole) {
-      return res.status(400).json({ message: "Invalid role." });
-    }
+    if (!mappedRole) return res.status(400).json({ message: "Invalid role." });
 
     const { data: profile, error } = await supabaseAdmin
       .from("profiles")
       .update({ role: mappedRole })
       .eq("id", req.user.id)
-      .select("id, full_name, email, role, created_at")
+      .select("id, full_name, email, role, avatar_url, created_at")
       .single();
 
     if (error || !profile) {
@@ -90,6 +144,7 @@ export const completeProfile = async (req, res) => {
         name: profile.full_name,
         email: profile.email,
         role: profile.role,
+        avatar_url: profile.avatar_url || null,
         created_at: profile.created_at,
       },
     });
@@ -100,7 +155,6 @@ export const completeProfile = async (req, res) => {
 };
 
 // ─── DELETE OAUTH USER ────────────────────────────────────────────────────────
-// Called to roll back invalid OAuth login/register attempts
 export const deleteOAuthUser = async (req, res) => {
   try {
     const { error } = await supabaseAdmin.auth.admin.deleteUser(req.user.id);
