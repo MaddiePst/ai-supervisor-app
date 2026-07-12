@@ -1,4 +1,7 @@
 import { supabaseAdmin } from "../lib/supabaseClient.js";
+import { model } from "../lib/aiConfig.js";
+import { JsonOutputParser } from "@langchain/core/output_parsers";
+import { PromptTemplate } from "@langchain/core/prompts";
 
 export async function listTasks(req, res) {
   try {
@@ -161,6 +164,94 @@ export async function deleteTask(req, res) {
     if (error) throw error;
     res.json({ message: "Task deleted" });
   } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+}
+
+
+const assignRolesParser = new JsonOutputParser();
+
+const assignRolesPrompt = PromptTemplate.fromTemplate(`
+You are a project manager AI. Assign each task to the most appropriate role based on the task title, description, and required skills.
+
+Return a JSON array with this exact shape:
+[
+  {{
+    "task_id": "the task id",
+    "role_id": "the matching role id",
+    "role_title": "the matching role title"
+  }}
+]
+
+Return only the JSON array, no explanation, no markdown.
+
+Roles:
+{roles}
+
+Tasks:
+{tasks}
+`);
+
+export async function assignRolesToTasks(req, res) {
+  const { projectId } = req.params;
+
+  if (req.user.role !== "manager") {
+    return res.status(403).json({ message: "Only managers can do this." });
+  }
+
+  try {
+    const { data: project } = await supabaseAdmin
+      .from("projects")
+      .select("roles")
+      .eq("id", projectId)
+      .single();
+
+    const roles = project?.roles || [];
+    if (roles.length === 0) {
+      return res.status(400).json({ message: "No roles defined for this project." });
+    }
+
+    // Only process tasks with no role assigned
+    const { data: tasks, error: tasksError } = await supabaseAdmin
+      .from("tasks")
+      .select("id, title, what, how, skills")
+      .eq("project_id", projectId)
+      .is("role_id", null);
+
+    if (tasksError) throw tasksError;
+    if (!tasks || tasks.length === 0) {
+      return res.json({ message: "All tasks already have roles assigned.", updated: 0 });
+    }
+
+    const chain = assignRolesPrompt.pipe(model).pipe(assignRolesParser);
+    const assignments = await chain.invoke({
+      roles: JSON.stringify(
+        roles.map((r) => ({ id: r.id, title: r.title, skills: r.skills || [] }))
+      ),
+      tasks: JSON.stringify(
+        tasks.map((t) => ({ task_id: t.id, title: t.title, what: t.what, skills: t.skills }))
+      ),
+    });
+
+    const updates = await Promise.all(
+      assignments.map(async ({ task_id, role_id, role_title }) => {
+        if (!task_id || !role_id) return null;
+        const { data, error } = await supabaseAdmin
+          .from("tasks")
+          .update({ role_id, role_title, updated_at: new Date() })
+          .eq("id", task_id)
+          .eq("project_id", projectId)
+          .select("id, title, role_id, role_title")
+          .single();
+        if (error) { console.error(`Task ${task_id}:`, error.message); return null; }
+        return data;
+      })
+    );
+
+    const updated = updates.filter(Boolean);
+    res.json({ message: `Assigned roles to ${updated.length} tasks.`, updated });
+  } catch (err) {
+    console.error("assignRolesToTasks error:", err.message);
     res.status(500).json({ error: err.message });
   }
 }

@@ -7,59 +7,114 @@ export async function listCandidates(req, res) {
   const { role_id } = req.query;
 
   try {
-    const { data: project, error: projError } = await supabaseAdmin
-      .from("projects")
-      .select("roles")
-      .eq("id", projectId)
-      .single();
+    // 1. Fetch project roles and all tasks in parallel
+    const [projectRes, allTasksRes, teamMembersRes] = await Promise.all([
+      supabaseAdmin.from("projects").select("roles").eq("id", projectId).single(),
+      supabaseAdmin.from("tasks").select("skills, role_id").eq("project_id", projectId),
+      supabaseAdmin.from("profiles").select("id, full_name, email, skills, headline, description, experience, avatar_url").eq("role", "team"),
+    ]);
 
-    if (projError || !project) {
-      return res.status(404).json({ message: "Project not found." });
+    if (teamMembersRes.error) throw teamMembersRes.error;
+
+    const roles = projectRes.data?.roles || [];
+    const role = roles.find((r) => r.id === role_id);
+    const allTasks = allTasksRes.data || [];
+    const teamMembers = teamMembersRes.data || [];
+
+    // 2. Build skill pool for matching
+    // Priority: role-level skills → role title keyword map → all project skills
+    const roleLevelSkills = (role?.skills || []).map((s) => s.toLowerCase());
+
+    // Common role title → expected skills mapping
+    const ROLE_SKILL_MAP = {
+      "backend": ["node.js", "express", "python", "java", "postgresql", "mysql", "mongodb", "rest apis", "graphql", "supabase", "database", "sql", "api"],
+      "frontend": ["react", "vue", "angular", "javascript", "typescript", "html", "css", "tailwind", "next.js", "vite", "ui", "ux"],
+      "fullstack": ["react", "node.js", "javascript", "typescript", "postgresql", "rest apis", "html", "css"],
+      "full stack": ["react", "node.js", "javascript", "typescript", "postgresql", "rest apis", "html", "css"],
+      "devops": ["docker", "kubernetes", "aws", "azure", "google cloud", "ci/cd", "terraform", "linux", "nginx", "deployment", "vercel", "railway"],
+      "ai": ["python", "langchain", "tensorflow", "pytorch", "machine learning", "nlp", "llm", "rag", "groq", "openai"],
+      "ml": ["python", "tensorflow", "pytorch", "machine learning", "data science", "pandas", "numpy"],
+      "ux": ["figma", "sketch", "wireframing", "prototyping", "user research", "usability", "accessibility", "design"],
+      "designer": ["figma", "sketch", "wireframing", "prototyping", "user research", "usability", "accessibility", "design"],
+      "qa": ["testing", "jest", "cypress", "selenium", "test automation", "quality assurance", "manual testing"],
+      "quality": ["testing", "jest", "cypress", "selenium", "test automation", "quality assurance", "manual testing"],
+      "security": ["cybersecurity", "penetration testing", "encryption", "hipaa", "gdpr", "soc 2", "network security"],
+      "cybersecurity": ["cybersecurity", "penetration testing", "encryption", "hipaa", "gdpr", "soc 2", "network security"],
+      "project manager": ["agile", "scrum", "jira", "project planning", "stakeholder management", "waterfall"],
+      "manager": ["agile", "scrum", "jira", "project planning", "stakeholder management"],
+      "data": ["sql", "python", "tableau", "power bi", "data analysis", "reporting", "excel", "statistics"],
+      "mobile": ["react native", "flutter", "swift", "kotlin", "ios", "android", "mobile development"],
+    };
+
+    // Match role title against the skill map
+    const roleTitleLower = (role?.title || "").toLowerCase();
+    let titleMappedSkills = [];
+    for (const [keyword, skills] of Object.entries(ROLE_SKILL_MAP)) {
+      if (roleTitleLower.includes(keyword)) {
+        titleMappedSkills = [...new Set([...titleMappedSkills, ...skills])];
+      }
     }
 
-    const roles = project.roles || [];
-    const role = roles.find((r) => r.id === role_id);
-    const roleSkills = role?.skills || [];
+    // Collect all project task skills as final fallback
+    const allProjectSkillsSet = new Set();
+    allTasks.forEach((t) => (t.skills || []).forEach((s) => allProjectSkillsSet.add(s.toLowerCase())));
 
-    const { data: teamMembers, error: usersError } = await supabaseAdmin
-      .from("profiles")
-      .select("id, full_name, email, skills, headline, experience")
-      .eq("role", "team");
+    let skillsToMatch = [];
+    if (roleLevelSkills.length > 0) {
+      skillsToMatch = roleLevelSkills;
+    } else if (titleMappedSkills.length > 0) {
+      skillsToMatch = titleMappedSkills;
+    } else {
+      skillsToMatch = Array.from(allProjectSkillsSet);
+    }
 
-    if (usersError) throw usersError;
+    console.log("role:", role?.title, "| skillsToMatch:", skillsToMatch.slice(0, 5));
 
-    const { data: hired } = await supabaseAdmin
+    // 3. Get all hired members for this project
+    const { data: allHired } = await supabaseAdmin
       .from("project_members")
-      .select("user_id")
-      .eq("project_id", projectId)
-      .eq("role_id", role_id || "");
+      .select("user_id, role_id")
+      .eq("project_id", projectId);
 
-    const hiredIds = new Set((hired || []).map((h) => h.user_id));
+    const hiredInThisRole = new Set(
+      (allHired || []).filter((h) => h.role_id === role_id).map((h) => h.user_id)
+    );
+    const hiredAnywhereOnProject = new Set((allHired || []).map((h) => h.user_id));
 
-    const scored = teamMembers.map((member) => {
+    // 4. Split into available and hired-in-this-role
+    const availableMembers = teamMembers.filter((m) => !hiredAnywhereOnProject.has(m.id));
+    const hiredMembers = teamMembers.filter((m) => hiredInThisRole.has(m.id));
+
+    // 5. Score candidates
+    const scoreCandidate = (member) => {
       const memberSkills = (member.skills || []).map((s) => s.toLowerCase());
-      const matched = roleSkills.filter((s) =>
-        memberSkills.includes(s.toLowerCase())
-      );
+      const matched = skillsToMatch.filter((s) => memberSkills.includes(s));
       const matchPercent =
-        roleSkills.length > 0
-          ? Math.round((matched.length / roleSkills.length) * 100)
-          : 0;
+        skillsToMatch.length > 0
+          ? Math.round((matched.length / skillsToMatch.length) * 100)
+          : Math.min(Math.round((member.experience || 0) * 10), 100);
 
       return {
         id: member.id,
         name: member.full_name,
         email: member.email,
         skills: member.skills || [],
-        matchedSkills: matched,
         headline: member.headline || "",
+        description: member.description || "",
+        matchedSkills: matched,
         experience: member.experience || 0,
+        avatar_url: member.avatar_url || null,
         match: matchPercent,
-        isHired: hiredIds.has(member.id),
+        isHired: hiredInThisRole.has(member.id),
       };
-    });
+    };
 
-    scored.sort((a, b) => b.match - a.match);
+    // Hired in this role always at top, then by match % descending
+    const scored = [
+      ...hiredMembers.map(scoreCandidate),
+      ...availableMembers.map(scoreCandidate).sort((a, b) => b.match - a.match),
+    ];
+
     res.json(scored);
   } catch (err) {
     console.error("listCandidates error:", err.message);
