@@ -6,7 +6,7 @@ function matchColor(pct) {
   return "bg-gray-100 text-gray-500";
 }
 
-function Avatar({ name, avatarUrl, size = 36 }) {
+function Avatar({ name, avatarUrl, size = 40 }) {
   const initials = (name || "?")
     .split(" ")
     .map((n) => n[0])
@@ -46,32 +46,36 @@ export default function CandidateCard({ candidate, isSelected, isHired, canSelec
 
   return (
     <div className={`p-3 rounded-xl transition ${borderClass}`}>
-      {/* Top row — avatar, name, match % */}
+
+      {/* Top row — avatar + name + match % */}
       <div className="flex items-start justify-between gap-2">
-        <div className="flex items-center gap-2 min-w-0">
-          <Avatar name={candidate.name} avatarUrl={candidate.avatar_url} size={36} />
+        <div className="flex items-center gap-2.5 min-w-0">
+          <Avatar name={candidate.name} avatarUrl={candidate.avatar_url} size={40} />
           <div className="min-w-0">
-            <p className="font-semibold text-gray-800 text-sm truncate">{candidate.name}</p>
+            <p className="font-bold text-gray-800 text-sm truncate">{candidate.name}</p>
+            {/* ✅ Headline — shown as job title under name */}
             {candidate.headline && (
-              <p className="text-xs text-blue-700 font-medium truncate">{candidate.headline}</p>
+              <p className="text-xs text-blue-700 font-medium truncate leading-tight">
+                {candidate.headline}
+              </p>
             )}
           </div>
         </div>
-        <span className={`text-xs font-bold px-2 py-0.5 rounded-full shrink-0 ${matchColor(candidate.match)}`}>
+        <span className={`text-xs font-bold px-2 py-0.5 rounded-full shrink-0 mt-0.5 ${matchColor(candidate.match)}`}>
           {candidate.match}%
         </span>
       </div>
 
-      {/* Description — expandable */}
+      {/* ✅ Description — expandable paragraph */}
       {candidate.description && (
-        <div className="mt-2">
+        <div className="mt-2.5">
           <p className={`text-xs text-gray-500 leading-relaxed ${expanded ? "" : "line-clamp-2"}`}>
             {candidate.description}
           </p>
           {candidate.description.length > 80 && (
             <button
               onClick={(e) => { e.stopPropagation(); setExpanded((p) => !p); }}
-              className="text-[10px] text-blue-500 hover:text-blue-700 mt-0.5 font-medium"
+              className="text-[10px] text-blue-500 hover:text-blue-700 mt-0.5 font-semibold"
             >
               {expanded ? "Show less" : "Show more"}
             </button>
@@ -82,15 +86,27 @@ export default function CandidateCard({ candidate, isSelected, isHired, canSelec
       {/* Skills */}
       {candidate.skills?.length > 0 && (
         <div className="flex flex-wrap gap-1 mt-2">
-          {candidate.skills.slice(0, 3).map((s) => (
-            <span key={s} className="bg-blue-100 text-blue-800 px-1.5 py-0.5 text-[10px] rounded font-medium">
+          {candidate.skills.slice(0, 4).map((s) => (
+            <span
+              key={s}
+              className="bg-blue-100 text-blue-800 px-1.5 py-0.5 text-[10px] rounded font-medium"
+            >
               {s}
             </span>
           ))}
-          {candidate.skills.length > 3 && (
-            <span className="text-[10px] text-gray-400">+{candidate.skills.length - 3}</span>
+          {candidate.skills.length > 4 && (
+            <span className="text-[10px] text-gray-400 self-center">
+              +{candidate.skills.length - 4} more
+            </span>
           )}
         </div>
+      )}
+
+      {/* Experience */}
+      {candidate.experience > 0 && (
+        <p className="text-[10px] text-gray-400 mt-1.5">
+          {candidate.experience} yr{candidate.experience !== 1 ? "s" : ""} experience
+        </p>
       )}
 
       {/* Select / Hired button */}

@@ -25,45 +25,50 @@ export async function listCandidates(req, res) {
     // Priority: role-level skills → role title keyword map → all project skills
     const roleLevelSkills = (role?.skills || []).map((s) => s.toLowerCase());
 
-    // Common role title → expected skills mapping
+    // Common role title → expected skills mapping (10-15 skills per role for accurate matching)
     const ROLE_SKILL_MAP = {
-      "backend": ["node.js", "express", "python", "java", "postgresql", "mysql", "mongodb", "rest apis", "graphql", "supabase", "database", "sql", "api"],
-      "frontend": ["react", "vue", "angular", "javascript", "typescript", "html", "css", "tailwind", "next.js", "vite", "ui", "ux"],
-      "fullstack": ["react", "node.js", "javascript", "typescript", "postgresql", "rest apis", "html", "css"],
-      "full stack": ["react", "node.js", "javascript", "typescript", "postgresql", "rest apis", "html", "css"],
-      "devops": ["docker", "kubernetes", "aws", "azure", "google cloud", "ci/cd", "terraform", "linux", "nginx", "deployment", "vercel", "railway"],
-      "ai": ["python", "langchain", "tensorflow", "pytorch", "machine learning", "nlp", "llm", "rag", "groq", "openai"],
-      "ml": ["python", "tensorflow", "pytorch", "machine learning", "data science", "pandas", "numpy"],
-      "ux": ["figma", "sketch", "wireframing", "prototyping", "user research", "usability", "accessibility", "design"],
-      "designer": ["figma", "sketch", "wireframing", "prototyping", "user research", "usability", "accessibility", "design"],
-      "qa": ["testing", "jest", "cypress", "selenium", "test automation", "quality assurance", "manual testing"],
-      "quality": ["testing", "jest", "cypress", "selenium", "test automation", "quality assurance", "manual testing"],
-      "security": ["cybersecurity", "penetration testing", "encryption", "hipaa", "gdpr", "soc 2", "network security"],
-      "cybersecurity": ["cybersecurity", "penetration testing", "encryption", "hipaa", "gdpr", "soc 2", "network security"],
-      "project manager": ["agile", "scrum", "jira", "project planning", "stakeholder management", "waterfall"],
-      "manager": ["agile", "scrum", "jira", "project planning", "stakeholder management"],
-      "data": ["sql", "python", "tableau", "power bi", "data analysis", "reporting", "excel", "statistics"],
-      "mobile": ["react native", "flutter", "swift", "kotlin", "ios", "android", "mobile development"],
+      "backend": ["node.js", "express", "python", "java", "postgresql", "mysql", "mongodb", "rest apis", "graphql", "supabase", "database", "sql", "api", "microservices", "authentication"],
+      "frontend": ["react", "vue", "angular", "javascript", "typescript", "html", "css", "tailwind", "next.js", "vite", "redux", "webpack", "responsive design", "accessibility", "ui"],
+      "fullstack": ["react", "node.js", "javascript", "typescript", "postgresql", "rest apis", "html", "css", "express", "mongodb", "supabase", "git", "docker", "api", "authentication"],
+      "full stack": ["react", "node.js", "javascript", "typescript", "postgresql", "rest apis", "html", "css", "express", "mongodb", "supabase", "git", "docker", "api", "authentication"],
+      "devops": ["docker", "kubernetes", "aws", "azure", "google cloud", "ci/cd", "terraform", "linux", "nginx", "deployment", "vercel", "railway", "ansible", "monitoring", "bash"],
+      "ai": ["python", "langchain", "tensorflow", "pytorch", "machine learning", "nlp", "llm", "rag", "groq", "openai", "hugging face", "vector database", "embeddings", "prompt engineering", "langchain"],
+      "ml": ["python", "tensorflow", "pytorch", "machine learning", "data science", "pandas", "numpy", "scikit-learn", "deep learning", "nlp", "computer vision", "statistics", "jupyter", "mlflow", "feature engineering"],
+      "ux": ["figma", "sketch", "wireframing", "prototyping", "user research", "usability testing", "accessibility", "design systems", "adobe xd", "information architecture", "interaction design", "typography", "color theory", "wcag", "user flows"],
+      "designer": ["figma", "sketch", "wireframing", "prototyping", "user research", "usability testing", "accessibility", "design systems", "adobe xd", "information architecture", "interaction design", "typography", "color theory", "wcag", "user flows"],
+      "qa": ["testing", "jest", "cypress", "selenium", "test automation", "quality assurance", "manual testing", "postman", "api testing", "regression testing", "test planning", "bug tracking", "jira", "performance testing", "load testing"],
+      "quality": ["testing", "jest", "cypress", "selenium", "test automation", "quality assurance", "manual testing", "postman", "api testing", "regression testing", "test planning", "bug tracking", "jira", "performance testing", "load testing"],
+      "security": ["cybersecurity", "penetration testing", "encryption", "hipaa", "gdpr", "soc 2", "network security", "owasp", "vulnerability assessment", "siem", "firewall", "identity management", "zero trust", "threat modeling", "incident response"],
+      "cybersecurity": ["cybersecurity", "penetration testing", "encryption", "hipaa", "gdpr", "soc 2", "network security", "owasp", "vulnerability assessment", "siem", "firewall", "identity management", "zero trust", "threat modeling", "incident response"],
+      "project manager": ["agile", "scrum", "jira", "project planning", "stakeholder management", "waterfall", "risk management", "budgeting", "resource allocation", "roadmapping", "confluence", "kanban", "sprint planning", "reporting", "communication"],
+      "manager": ["agile", "scrum", "jira", "project planning", "stakeholder management", "waterfall", "risk management", "budgeting", "resource allocation", "roadmapping", "confluence", "kanban", "sprint planning", "reporting", "communication"],
+      "data": ["sql", "python", "tableau", "power bi", "data analysis", "reporting", "excel", "statistics", "data visualization", "etl", "data warehousing", "bigquery", "snowflake", "pandas", "machine learning"],
+      "mobile": ["react native", "flutter", "swift", "kotlin", "ios", "android", "mobile development", "xcode", "android studio", "push notifications", "app store", "offline storage", "ux design", "performance optimization", "cross-platform"],
     };
 
-    // Match role title against the skill map
+    // Match role title against ALL matching keywords in the map
+    // e.g. "Backend Developer" matches both "backend" AND "developer" if present
     const roleTitleLower = (role?.title || "").toLowerCase();
-    let titleMappedSkills = [];
+    const titleMappedSkillsSet = new Set();
     for (const [keyword, skills] of Object.entries(ROLE_SKILL_MAP)) {
       if (roleTitleLower.includes(keyword)) {
-        titleMappedSkills = [...new Set([...titleMappedSkills, ...skills])];
+        skills.forEach((s) => titleMappedSkillsSet.add(s));
       }
     }
+    const titleMappedSkills = Array.from(titleMappedSkillsSet);
 
     // Collect all project task skills as final fallback
     const allProjectSkillsSet = new Set();
     allTasks.forEach((t) => (t.skills || []).forEach((s) => allProjectSkillsSet.add(s.toLowerCase())));
 
     let skillsToMatch = [];
-    if (roleLevelSkills.length > 0) {
+    if (titleMappedSkills.length > 0) {
+      // ✅ Always prefer the title map — it has 15 skills per role for accurate matching
+      // Merge with role-level skills if defined, deduplicated
+      const merged = new Set([...titleMappedSkills, ...roleLevelSkills]);
+      skillsToMatch = Array.from(merged);
+    } else if (roleLevelSkills.length > 0) {
       skillsToMatch = roleLevelSkills;
-    } else if (titleMappedSkills.length > 0) {
-      skillsToMatch = titleMappedSkills;
     } else {
       skillsToMatch = Array.from(allProjectSkillsSet);
     }
@@ -114,7 +119,6 @@ export async function listCandidates(req, res) {
       ...hiredMembers.map(scoreCandidate),
       ...availableMembers.map(scoreCandidate).sort((a, b) => b.match - a.match),
     ];
-
     res.json(scored);
   } catch (err) {
     console.error("listCandidates error:", err.message);
