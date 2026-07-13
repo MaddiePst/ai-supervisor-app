@@ -117,7 +117,7 @@ export default function CandidateCard({ candidate, isSelected, isHired, canSelec
           isHired
             ? "bg-cyan-100 text-cyan-700 cursor-default"
             : isSelected
-            ? "bg-blue-500 text-white hover:bg-blue-600"
+            ? "bg-linear-to-r from-blue-900 to-cyan-300 text-white shadow"
             : canSelect
             ? "border border-gray-300 text-gray-600 hover:border-blue-400 hover:text-blue-600"
             : "border border-gray-200 text-gray-300 cursor-not-allowed"
