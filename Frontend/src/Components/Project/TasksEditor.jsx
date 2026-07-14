@@ -1,5 +1,6 @@
 import { ChevronDown, ChevronUp, Edit2, Plus, Save, Trash2, X } from "lucide-react";
-import React, { useState, useMemo, useEffect } from "react";
+import React, { useState, useEffect } from "react";
+import { useTranslation } from "react-i18next";
 import StatusBadge from "./StatusBadge";
 
 const STATUSES = ["not_started", "in_progress", "complete"];
@@ -15,49 +16,41 @@ const emptyTask = () => ({
 });
 
 export default function TasksEditor({ tasks = [], onSave }) {
-  const initial = useMemo(
-    () =>
-      tasks.map((t, i) => ({
-        id: t.id || `task-${i}`,
-        title: t.title || "",
-        what: t.what || "",
-        how: t.how || "",
-        skills: Array.isArray(t.skills) ? t.skills.join(", ") : t.skills || "",
-        status: t.status || "not_started",
-        _isNew: t._isNew || false,
-      })),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [] // only initialize once
-  );
+  const { t } = useTranslation();
 
-  const [editableTasks, setEditableTasks] = useState(initial);
+  // ✅ Initialize once from props using a function — no useMemo needed
+  const [editableTasks, setEditableTasks] = useState(() =>
+    tasks.map((task, i) => ({
+      id: task.id || `task-${i}`,
+      title: task.title || "",
+      what: task.what || "",
+      how: task.how || "",
+      skills: Array.isArray(task.skills) ? task.skills.join(", ") : task.skills || "",
+      status: task.status || "not_started",
+      _isNew: task._isNew || false,
+    }))
+  );
   const [editingId, setEditingId] = useState(null);
   const [expandedId, setExpandedId] = useState(null);
   const [savedMsg, setSavedMsg] = useState(false);
 
-  // ✅ Sync to parent on every change — Save Project always has the latest state
-  useEffect(() => {
-    onSave(editableTasks);
-  }, [editableTasks]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { onSave(editableTasks); }, [editableTasks]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const update = (id, field, value) =>
-    setEditableTasks((prev) =>
-      prev.map((t) => (t.id === id ? { ...t, [field]: value } : t))
-    );
+    setEditableTasks((prev) => prev.map((task) => (task.id === id ? { ...task, [field]: value } : task)));
 
   const addTask = () => {
-    const t = emptyTask();
-    setEditableTasks((prev) => [...prev, t]);
-    setEditingId(t.id);
+    const task = emptyTask();
+    setEditableTasks((prev) => [...prev, task]);
+    setEditingId(task.id);
     setExpandedId(null);
   };
 
   const removeTask = (id) => {
-    setEditableTasks((prev) => prev.filter((t) => t.id !== id));
+    setEditableTasks((prev) => prev.filter((task) => task.id !== id));
     if (editingId === id) setEditingId(null);
   };
 
-  // Save Tasks button — just collapses edit mode and shows confirmation
   const handleSaveTasks = () => {
     setEditingId(null);
     setSavedMsg(true);
@@ -68,19 +61,17 @@ export default function TasksEditor({ tasks = [], onSave }) {
     <div className="bg-white/70 rounded-2xl shadow-lg overflow-hidden">
       <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
         <div>
-          <h3 className="font-bold text-gray-900">Tasks</h3>
-          <p className="text-xs text-gray-400 mt-0.5">Changes are saved automatically when you press Save Project</p>
+          <h3 className="font-bold text-gray-900">{t("tasksTitle")}</h3>
+          <p className="text-xs text-gray-400 mt-0.5">{t("tasksSubtitle")}</p>
         </div>
         <div className="flex gap-2">
           <button onClick={addTask}
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-gray-100 text-gray-600 hover:bg-gray-200 transition">
-            <Plus className="w-3.5 h-3.5" />
-            Add Task
+            <Plus className="w-3.5 h-3.5" />{t("addTask")}
           </button>
           <button onClick={handleSaveTasks}
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-linear-to-r from-blue-900 to-cyan-400 text-white transition">
-            <Save className="w-3.5 h-3.5" />
-            {savedMsg ? "Done!" : "Save Tasks"}
+            <Save className="w-3.5 h-3.5" />{savedMsg ? t("done") : t("saveTasks")}
           </button>
         </div>
       </div>
@@ -88,7 +79,7 @@ export default function TasksEditor({ tasks = [], onSave }) {
       <div className="divide-y divide-gray-100">
         {editableTasks.length === 0 ? (
           <div className="px-6 py-8 text-center">
-            <p className="text-sm text-gray-400">No tasks yet — add one manually or upload a PDF</p>
+            <p className="text-sm text-gray-400">{t("noTasksYet")}</p>
           </div>
         ) : (
           editableTasks.map((task) => (
@@ -100,12 +91,10 @@ export default function TasksEditor({ tasks = [], onSave }) {
                       onChange={(e) => update(task.id, "title", e.target.value)}
                       placeholder="Task title"
                       className="flex-1 px-3 py-2 rounded-xl border border-gray-200 text-sm focus:outline-none focus:border-blue-500" />
-                    <button onClick={() => setEditingId(null)}
-                      className="p-2 rounded-lg text-green-600 hover:bg-green-50 transition">
+                    <button onClick={() => setEditingId(null)} className="p-2 rounded-lg text-green-600 hover:bg-green-50 transition">
                       <Save className="w-4 h-4" />
                     </button>
-                    <button onClick={() => removeTask(task.id)}
-                      className="p-2 rounded-lg text-red-400 hover:bg-red-50 transition">
+                    <button onClick={() => removeTask(task.id)} className="p-2 rounded-lg text-red-400 hover:bg-red-50 transition">
                       <Trash2 className="w-4 h-4" />
                     </button>
                   </div>
@@ -120,19 +109,19 @@ export default function TasksEditor({ tasks = [], onSave }) {
                     ))}
                   </div>
                   <div>
-                    <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1 block">What</label>
+                    <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1 block">{t("whatLabel")}</label>
                     <textarea value={task.what} onChange={(e) => update(task.id, "what", e.target.value)}
                       rows={3} className="w-full px-3 py-2 rounded-xl border border-gray-200 text-sm focus:outline-none focus:border-blue-500 resize-none" />
                   </div>
                   <div>
-                    <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1 block">How</label>
+                    <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1 block">{t("howLabel")}</label>
                     <textarea value={task.how} onChange={(e) => update(task.id, "how", e.target.value)}
                       rows={3} className="w-full px-3 py-2 rounded-xl border border-gray-200 text-sm focus:outline-none focus:border-blue-500 resize-none" />
                   </div>
                   <div>
-                    <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1 block">Skills (comma separated)</label>
+                    <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1 block">{t("skills")}</label>
                     <input value={task.skills} onChange={(e) => update(task.id, "skills", e.target.value)}
-                      placeholder="React, Node.js, PostgreSQL"
+                      placeholder={t("skillsPlaceholder")}
                       className="w-full px-3 py-2 rounded-xl border border-gray-200 text-sm focus:outline-none focus:border-blue-500" />
                   </div>
                 </div>
@@ -145,7 +134,7 @@ export default function TasksEditor({ tasks = [], onSave }) {
                         {expandedId === task.id ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
                       </button>
                       <p className="text-sm font-semibold text-gray-800 truncate">
-                        {task.title || <span className="text-gray-400 italic">Untitled task</span>}
+                        {task.title || <span className="text-gray-400 italic">{t("untitledTask")}</span>}
                       </p>
                     </div>
                     <div className="flex items-center gap-2 ml-2">
@@ -162,8 +151,8 @@ export default function TasksEditor({ tasks = [], onSave }) {
                   </div>
                   {expandedId === task.id && (
                     <div className="mt-3 ml-6 space-y-2 bg-gray-50 rounded-xl p-3 border border-gray-100">
-                      {task.what && <div><p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">What</p><p className="text-sm text-gray-700 mt-0.5">{task.what}</p></div>}
-                      {task.how && <div><p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">How</p><p className="text-sm text-gray-700 mt-0.5">{task.how}</p></div>}
+                      {task.what && <div><p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">{t("whatLabel")}</p><p className="text-sm text-gray-700 mt-0.5">{task.what}</p></div>}
+                      {task.how && <div><p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">{t("howLabel")}</p><p className="text-sm text-gray-700 mt-0.5">{task.how}</p></div>}
                       {task.skills && (
                         <div className="flex flex-wrap gap-1.5 mt-1">
                           {(typeof task.skills === "string"
@@ -182,10 +171,11 @@ export default function TasksEditor({ tasks = [], onSave }) {
           ))
         )}
       </div>
-
       {editableTasks.length > 0 && (
         <div className="px-6 py-3 border-t border-gray-100 bg-gray-50">
-          <p className="text-xs text-gray-500">{editableTasks.length} task{editableTasks.length !== 1 ? "s" : ""}</p>
+          <p className="text-xs text-gray-500">
+            {editableTasks.length} {editableTasks.length !== 1 ? t("tasksTitle").toLowerCase() : "task"}
+          </p>
         </div>
       )}
     </div>

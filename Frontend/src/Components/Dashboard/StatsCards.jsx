@@ -1,6 +1,9 @@
 import React from "react";
+import { useTranslation } from "react-i18next";
 
 export default function StatsCards({ projects = [] }) {
+  const { t } = useTranslation();
+
   const allTasks = projects.flatMap((p) => p.tasks || []);
   const activeProjects = projects.filter((p) => p.status !== "complete").length;
   const totalTasks = allTasks.length;
@@ -9,23 +12,21 @@ export default function StatsCards({ projects = [] }) {
   const utilization = totalTasks > 0 ? Math.round((assignedTasks / totalTasks) * 100) : 0;
 
   const stats = [
-    { label: "Active Projects", value: activeProjects },
-    { label: "Total Tasks", value: totalTasks },
-    { label: "Completed Tasks", value: completedTasks },
-    { label: "Team Utilization", value: `${utilization}%` },
+    { label: t("activeProjects"), value: activeProjects },
+    { label: t("totalTasks"), value: totalTasks },
+    { label: t("completedTasks"), value: completedTasks },
+    { label: t("teamUtilization"), value: `${utilization}%` },
   ];
 
   return (
     <div className="grid grid-cols-4 gap-4">
       {stats.map((s, i) => (
-        <div
-          key={s.label}
+        <div key={s.label}
           className={`rounded-2xl p-5 shadow ${
             i % 2 === 0
               ? "bg-white/60"
-              : "bg-gradient-to-r from-blue-900 to-cyan-500 text-white"
-          }`}
-        >
+              : "bg-linear-to-r from-blue-900 to-cyan-500 text-white"
+          }`}>
           <p className={`text-sm ${i % 2 === 0 ? "text-gray-500" : "text-blue-100"}`}>
             {s.label}
           </p>

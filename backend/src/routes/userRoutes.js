@@ -3,6 +3,7 @@ import {
   getMe,
   getProfile,
   updateProfile,
+  savePreferences,
   completeProfile,
   deleteOAuthUser,
 } from "../Controllers/userController.js";
@@ -21,6 +22,9 @@ router.put("/profile", protect, updateProfile);
 
 // POST /api/users/complete-profile — OAuth users picking a role
 router.post("/complete-profile", protect, completeProfile);
+
+// PUT  /api/users/preferences — save language + date format
+router.put("/preferences", protect, savePreferences);
 
 // DELETE /api/users/me — roll back invalid OAuth attempts
 router.delete("/me", protect, deleteOAuthUser);

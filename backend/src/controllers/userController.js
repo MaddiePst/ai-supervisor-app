@@ -65,6 +65,8 @@ export const updateProfile = async (req, res) => {
       skills,
       availability,
       avatar_url,
+      preferred_language,
+      preferred_date_format,
     } = req.body;
 
     let normalizedSkills = skills;
@@ -72,21 +74,26 @@ export const updateProfile = async (req, res) => {
       normalizedSkills = skills.split(",").map((s) => s.trim()).filter(Boolean);
     }
 
+    const updateData = {
+      full_name,
+      company,
+      industry,
+      country,
+      time_zone,
+      experience: experience ? parseInt(experience) : null,
+      headline,
+      description,
+      skills: normalizedSkills,
+      availability,
+      avatar_url,
+    };
+
+    if (preferred_language) updateData.preferred_language = preferred_language;
+    if (preferred_date_format) updateData.preferred_date_format = preferred_date_format;
+
     const { data: profile, error } = await supabaseAdmin
       .from("profiles")
-      .update({
-        full_name,
-        company,
-        industry,
-        country,
-        time_zone,
-        experience: experience ? parseInt(experience) : null,
-        headline,
-        description,
-        skills: normalizedSkills,
-        availability,
-        avatar_url,
-      })
+      .update(updateData)
       .eq("id", req.user.id)
       .select("*")
       .single();
@@ -162,6 +169,33 @@ export const deleteOAuthUser = async (req, res) => {
     return res.json({ success: true });
   } catch (err) {
     console.error("deleteOAuthUser error:", err.message);
+    return res.status(500).json({ message: "Something went wrong." });
+  }
+};
+
+// ─── SAVE PREFERENCES ────────────────────────────────────────────────────────
+export const savePreferences = async (req, res) => {
+  try {
+    const { preferred_language, preferred_date_format } = req.body;
+    const update = {};
+    if (preferred_language) update.preferred_language = preferred_language;
+    if (preferred_date_format) update.preferred_date_format = preferred_date_format;
+
+    if (Object.keys(update).length === 0) {
+      return res.status(400).json({ message: "Nothing to update." });
+    }
+
+    const { data: profile, error } = await supabaseAdmin
+      .from("profiles")
+      .update(update)
+      .eq("id", req.user.id)
+      .select("preferred_language, preferred_date_format")
+      .single();
+
+    if (error) throw error;
+    return res.json({ profile });
+  } catch (err) {
+    console.error("savePreferences error:", err.message);
     return res.status(500).json({ message: "Something went wrong." });
   }
 };
