@@ -176,10 +176,12 @@ export const deleteOAuthUser = async (req, res) => {
 // ─── SAVE PREFERENCES ────────────────────────────────────────────────────────
 export const savePreferences = async (req, res) => {
   try {
-    const { preferred_language, preferred_date_format } = req.body;
+    const { preferred_language, preferred_date_format, email_alerts, weekly_reports } = req.body;
     const update = {};
-    if (preferred_language) update.preferred_language = preferred_language;
-    if (preferred_date_format) update.preferred_date_format = preferred_date_format;
+    if (preferred_language !== undefined) update.preferred_language = preferred_language;
+    if (preferred_date_format !== undefined) update.preferred_date_format = preferred_date_format;
+    if (email_alerts !== undefined) update.email_alerts = email_alerts;
+    if (weekly_reports !== undefined) update.weekly_reports = weekly_reports;
 
     if (Object.keys(update).length === 0) {
       return res.status(400).json({ message: "Nothing to update." });

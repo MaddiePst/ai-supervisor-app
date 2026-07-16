@@ -12,6 +12,7 @@ import taskRoutes from "./Routes/tasks.js";
 import uploadRoutes from "./Routes/uploads.js";
 import userRoutes from "./Routes/userRoutes.js";
 import projectMembersRoutes from "./Routes/projectMembersRoutes.js";
+import { startWeeklyReportJob } from "./Utils/WeeklyReportJob.js";
 
 const PORT = process.env.PORT || 5000;
 const app = express();
@@ -31,4 +32,5 @@ app.use("/api/projects", projectMembersRoutes);
 
 app.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);
+  startWeeklyReportJob();
 });
