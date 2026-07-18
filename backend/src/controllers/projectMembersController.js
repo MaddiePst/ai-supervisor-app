@@ -119,6 +119,7 @@ export async function listCandidates(req, res) {
       ...hiredMembers.map(scoreCandidate),
       ...availableMembers.map(scoreCandidate).sort((a, b) => b.match - a.match),
     ];
+
     res.json(scored);
   } catch (err) {
     console.error("listCandidates error:", err.message);
@@ -249,7 +250,7 @@ export async function listMembers(req, res) {
   try {
     const { data, error } = await supabaseAdmin
       .from("project_members")
-      .select("id, user_id, role_id, role_title, hired_at, profiles(full_name, email, skills)")
+      .select("id, user_id, role_id, role_title, hired_at, profiles(full_name, email, skills, avatar_url)")
       .eq("project_id", projectId);
 
     if (error) throw error;

@@ -26,31 +26,48 @@ export default function ProjectList({ projects = [], selectedId, onSelect, onDel
           const isSelected = p.id === selectedId;
 
           return (
-            <div key={p.id} onClick={() => onSelect(isSelected ? null : p)}
+            <div
+              key={p.id}
+              onClick={() => onSelect(isSelected ? null : p)}
               className={`relative group bg-white/70 rounded-2xl p-4 shadow cursor-pointer transition border-2 ${
                 isSelected ? "border-blue-500" : "border-transparent hover:border-gray-200"
-              }`}>
+              }`}
+            >
+              {/* ✅ Delete button — top-right, only on hover */}
               {onDelete && (
-                <button onClick={(e) => { e.stopPropagation(); onDelete(p.id); }}
+                <button
+                  onClick={(e) => { e.stopPropagation(); onDelete(p.id); }}
                   title={t("delete")}
-                  className="absolute top-2 right-2 w-6 h-6 flex items-center justify-center rounded-full opacity-0 group-hover:opacity-100 transition-opacity bg-red-100 hover:bg-red-200 text-red-500 z-10">
-                  <X className="w-3.5 h-3.5" />
+                  className="absolute top-3 right-3 w-7 h-7 flex items-center justify-center rounded-full opacity-0 group-hover:opacity-100 transition-opacity bg-red-100 hover:bg-red-200 text-red-500 z-10"
+                >
+                  <X className="w-4 h-4" />
                 </button>
               )}
-              <div className="flex items-center justify-between mb-2">
-                <div className="flex items-center gap-2 min-w-0 pr-6">
+
+              {/* ✅ Header row — more padding-right so X and arrow don't overlap */}
+              <div className="flex items-center justify-between mb-3 pr-10">
+                <div className="flex items-center gap-2 min-w-0">
                   <span className="font-semibold text-gray-900 text-sm truncate">{p.name}</span>
                   <StatusBadge status={p.status} />
                 </div>
-                <button onClick={(e) => { e.stopPropagation(); navigate(`/projects/${p.id}`); }}
-                  className="text-blue-800 hover:text-cyan-600 transition ml-2 shrink-0">
+                {/* ✅ Arrow button — separate from X, no overlap */}
+                <button
+                  onClick={(e) => { e.stopPropagation(); navigate(`/projects/${p.id}`); }}
+                  className="shrink-0 w-7 h-7 flex items-center justify-center rounded-full hover:bg-blue-50 text-blue-800 hover:text-cyan-600 transition"
+                >
                   <ArrowRight className="w-4 h-4" />
                 </button>
               </div>
+
+              {/* Progress bar */}
               <div className="w-full bg-gray-200 rounded-full h-1.5 mb-2">
-                <div className="bg-linear-to-r from-blue-900 to-cyan-500 h-1.5 rounded-full transition-all duration-500"
-                  style={{ width: `${progress}%` }} />
+                <div
+                  className="bg-linear-to-r from-blue-900 to-cyan-500 h-1.5 rounded-full transition-all duration-500"
+                  style={{ width: `${progress}%` }}
+                />
               </div>
+
+              {/* Stats row */}
               <div className="flex gap-3 text-xs text-gray-400">
                 <span>{progress}% {t("complete")}</span>
                 <span>·</span>

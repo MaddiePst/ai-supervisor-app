@@ -13,7 +13,7 @@ export async function listProjects(req, res) {
     if (userRole === "manager") {
       ({ data, error } = await supabaseAdmin
         .from("projects")
-        .select("*, tasks(id, status, skills, assigned_to, role_id, role_title)")
+        .select("*, tasks(id, title, status, skills, assigned_to, role_id, role_title)")
         .eq("owner_id", userId)
         .order("created_at", { ascending: false }));
     } else {
@@ -31,7 +31,7 @@ export async function listProjects(req, res) {
 
       ({ data, error } = await supabaseAdmin
         .from("projects")
-        .select("*, tasks(id, status, skills, assigned_to, role_id, role_title)")
+        .select("*, tasks(id, title, status, skills, assigned_to, role_id, role_title)")
         .in("id", projectIds)
         .order("created_at", { ascending: false }));
     }

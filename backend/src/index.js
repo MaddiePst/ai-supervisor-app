@@ -13,6 +13,8 @@ import uploadRoutes from "./Routes/uploads.js";
 import userRoutes from "./Routes/userRoutes.js";
 import projectMembersRoutes from "./Routes/projectMembersRoutes.js";
 import { startWeeklyReportJob } from "./Utils/WeeklyReportJob.js";
+import calendarEventsRoutes from "./Routes/calendarRoutes.js";
+
 
 const PORT = process.env.PORT || 5000;
 const app = express();
@@ -29,6 +31,7 @@ app.use("/api/chat", chatRoutes);
 
 app.get("/api/health", (req, res) => res.json({ status: "ok" }));
 app.use("/api/projects", projectMembersRoutes);
+app.use("/api/calendar", calendarEventsRoutes);
 
 app.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);

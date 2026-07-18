@@ -39,22 +39,19 @@ export default function Dashboard() {
     }
   };
 
-  const deadlineEvents = projects
-    .filter((p) => p.deadline)
-    .map((p) => ({ title: p.name, start: new Date(p.deadline), end: new Date(p.deadline) }));
-
   return (
-    // ✅ key={i18n.language} forces React to remount when language changes
-    // guaranteeing all text re-renders with the new language
     <div key={i18n.language} className="min-h-screen bg-[#c5c7ca] text-gray-800 flex">
       <Sidebar />
       <div className="flex-1 flex flex-col p-8 gap-6">
         <h1 className="text-3xl font-bold text-gray-900 tracking-tight">
           {t("dashboardTitle")}
         </h1>
+
         <StatsCards projects={projects} />
-        <div className="flex gap-6 h-175">
-          <div className="w-2/5 h-full overflow-y-auto pr-1">
+
+        <div className="flex gap-6">
+          {/* Left: Project List */}
+          <div className="w-2/5 overflow-y-auto pr-1 max-h-[600px]">
             <ProjectList
               projects={projects}
               selectedId={selectedProject?.id}
@@ -62,9 +59,12 @@ export default function Dashboard() {
               onDelete={handleDelete}
             />
           </div>
-          <div className="flex-1 h-full flex flex-col gap-6">
+
+          {/* Right: Charts + Calendar */}
+          <div className="flex-1 flex flex-col gap-6">
             <DonutChart project={selectedProject} projects={projects} />
-            <DeadlineCalendar events={deadlineEvents} />
+            {/* ✅ Pass projects so calendar modal can link events to projects */}
+            <DeadlineCalendar projects={projects} />
           </div>
         </div>
       </div>
