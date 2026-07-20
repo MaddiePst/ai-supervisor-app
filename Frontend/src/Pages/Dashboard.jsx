@@ -51,7 +51,7 @@ export default function Dashboard() {
 
         <div className="flex gap-6">
           {/* Left: Project List */}
-          <div className="w-2/5 overflow-y-auto pr-1 max-h-[600px]">
+          <div className="w-2/5 overflow-y-auto pr-1 max-h-150">
             <ProjectList
               projects={projects}
               selectedId={selectedProject?.id}

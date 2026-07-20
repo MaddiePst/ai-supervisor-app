@@ -6,47 +6,33 @@ function deriveStatus(tasks) {
   if (!tasks || tasks.length === 0) return "not_started";
   const complete = tasks.filter((t) => t.status === "complete").length;
   if (complete === tasks.length) return "complete";
-  if (complete > 0 || tasks.some((t) => t.status === "in_progress")) return "in_progress";
+  if (complete > 0 || tasks.some((t) => t.status === "in_progress" || t.status === "delayed")) return "in_progress";
   return "not_started";
 }
 
 export default function ProjectCard({
   project,
   tasks = [],
-  editable = false,
-  onTaskClick,
-  // ✅ New props for role-based access
-  userRoleIds = [],      // role IDs the current user is hired into on this project
+  userRoleIds = [],
   isManager = false,
-  onStatusChange,        // callback(taskId, newStatus)
+  onStatusChange,
+  onTaskFieldUpdate,
+  projectId,
 }) {
   const [expandedId, setExpandedId] = useState(null);
-
   const completedCount = tasks.filter((t) => t.status === "complete").length;
   const inProgressCount = tasks.filter((t) => t.status === "in_progress").length;
-  const progressPercent = tasks.length > 0
-    ? Math.round((completedCount / tasks.length) * 100)
-    : 0;
+  const progressPercent = tasks.length > 0 ? Math.round((completedCount / tasks.length) * 100) : 0;
   const overallStatus = deriveStatus(tasks);
-
-  const handleToggle = (task) => {
-    if (editable && onTaskClick) {
-      onTaskClick(task);
-    } else {
-      setExpandedId((prev) => (prev === task.id ? null : task.id));
-    }
-  };
 
   return (
     <div className="bg-white/70 rounded-2xl shadow-lg overflow-hidden">
-      {/* HEADER */}
+      {/* Header */}
       <div className="px-6 py-5 border-b border-gray-100">
         <div className="flex items-start justify-between gap-4">
           <div>
             <h2 className="text-lg font-bold text-gray-900">{project.name}</h2>
-            {project.description && (
-              <p className="text-sm text-gray-500 mt-1">{project.description}</p>
-            )}
+            {project.description && <p className="text-sm text-gray-500 mt-1">{project.description}</p>}
           </div>
           <StatusBadge status={overallStatus} />
         </div>
@@ -64,7 +50,7 @@ export default function ProjectCard({
         </div>
       </div>
 
-      {/* TASK LIST */}
+      {/* Task list */}
       <div>
         {tasks.length === 0 ? (
           <p className="text-sm text-gray-400 text-center py-8">
@@ -72,17 +58,18 @@ export default function ProjectCard({
           </p>
         ) : (
           tasks.map((task) => {
-            // ✅ Team members can update status only if hired into this task's role
             const canUpdateStatus = isManager || userRoleIds.includes(task.role_id);
-
             return (
               <TaskItem
                 key={task.id}
                 task={task}
                 isExpanded={expandedId === task.id}
-                onToggle={() => handleToggle(task)}
+                onToggle={() => setExpandedId((prev) => (prev === task.id ? null : task.id))}
                 canUpdateStatus={canUpdateStatus}
                 onStatusChange={onStatusChange}
+                onTaskFieldUpdate={onTaskFieldUpdate}
+                projectId={projectId}
+                isManager={isManager}
               />
             );
           })

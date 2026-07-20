@@ -1,24 +1,19 @@
 import React from "react";
 
 const STATUS_CONFIG = {
-  not_started: { label: "Not Started", bg: "#f3f4f6", color: "#6b7280", dot: "#9ca3af" },
-  in_progress: { label: "In Progress", bg: "#dbeafe", color: "#1e40af", dot: "#3b82f6" },
-  delayed: { label: "Delayed", bg: "#FFDB99", color: "#FFB733", dot: "#FFA500" },
-  complete:    { label: "Complete",    bg: "#d1fae5", color: "#065f46", dot: "#10b981" },
+  not_started: { label: "Not Started", classes: "bg-gray-100 text-gray-500" },
+  in_progress:  { label: "In Progress", classes: "bg-yellow-100 text-yellow-700" },
+  delayed:      { label: "Delayed",     classes: "bg-red-100 text-red-600" },
+  complete:     { label: "Complete",    classes: "bg-green-100 text-green-700" },
+  // project-level statuses
+  active:       { label: "Active",      classes: "bg-blue-100 text-blue-700" },
+  archived:     { label: "Archived",    classes: "bg-gray-100 text-gray-400" },
 };
 
 export default function StatusBadge({ status }) {
-  const config = STATUS_CONFIG[status] || STATUS_CONFIG.not_started;
-
+  const config = STATUS_CONFIG[status] || { label: status, classes: "bg-gray-100 text-gray-500" };
   return (
-    <span
-      className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold"
-      style={{ backgroundColor: config.bg, color: config.color }}
-    >
-      <span
-        className="w-1.5 h-1.5 rounded-full"
-        style={{ backgroundColor: config.dot }}
-      />
+    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold shrink-0 ${config.classes}`}>
       {config.label}
     </span>
   );
