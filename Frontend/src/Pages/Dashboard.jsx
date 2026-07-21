@@ -5,6 +5,7 @@ import StatsCards from "../Components/Dashboard/StatsCards";
 import DonutChart from "../Components/Dashboard/DonutChart";
 import DeadlineCalendar from "../Components/Dashboard/DeadlineCalendar";
 import ProjectList from "../Components/Dashboard/ProjectList";
+import FloatingChat from "../Components/Dashboard/FloatingChat";
 
 const API_BASE = import.meta.env.VITE_API_URL + "/api";
 const getToken = () => localStorage.getItem("token");
@@ -68,6 +69,7 @@ export default function Dashboard() {
           </div>
         </div>
       </div>
+      <FloatingChat projects={projects} />
     </div>
   );
 }
