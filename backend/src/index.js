@@ -12,7 +12,7 @@ import taskRoutes from "./Routes/tasks.js";
 import uploadRoutes from "./Routes/uploads.js";
 import userRoutes from "./Routes/userRoutes.js";
 import projectMembersRoutes from "./Routes/projectMembersRoutes.js";
-import { startWeeklyReportJob } from "./Utils/WeeklyReportJob.js";
+import { startWeeklyReportJob, sendWeeklyReport } from "./Utils/WeeklyReportJob.js";
 import calendarEventsRoutes from "./Routes/calendarRoutes.js";
 
 

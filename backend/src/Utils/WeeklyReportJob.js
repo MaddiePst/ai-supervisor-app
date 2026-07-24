@@ -76,7 +76,7 @@ async function buildUserReport(userId, userRole) {
 }
 
 // ─── SEND WEEKLY REPORT TO ONE USER ──────────────────────────────────────────
-async function sendWeeklyReport(user) {
+export async function sendWeeklyReport(user) {
   try {
     const projects = await buildUserReport(user.id, user.role);
     if (projects.length === 0) return;

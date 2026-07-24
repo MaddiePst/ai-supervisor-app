@@ -66,7 +66,7 @@ export async function updateTaskStatus(req, res) {
 
   try {
     const { data: task, error: taskError } = await supabaseAdmin
-      .from("tasks").select("role_id, project_id").eq("id", req.params.id).single();
+  .from("tasks").select("id, title, status, role_id, project_id").eq("id", req.params.id).single();
 
     if (taskError || !task) return res.status(404).json({ message: "Task not found." });
 
@@ -81,6 +81,15 @@ export async function updateTaskStatus(req, res) {
     const { data, error } = await supabaseAdmin
       .from("tasks").update({ status, updated_at: new Date() }).eq("id", req.params.id).select().single();
     if (error) throw error;
+
+    notifyTaskStatusUpdate({
+      projectId: task.project_id,
+      taskTitle: task.title,
+      oldStatus: task.status,
+      newStatus: status,
+      actorName: req.user.full_name || req.user.email,
+    }).catch((err) => console.error("Notification error:", err.message));
+    
     res.json(data);
   } catch (err) {
     res.status(500).json({ error: err.message });

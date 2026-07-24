@@ -191,7 +191,7 @@ export const savePreferences = async (req, res) => {
       .from("profiles")
       .update(update)
       .eq("id", req.user.id)
-      .select("preferred_language, preferred_date_format")
+      .select("preferred_language, preferred_date_format, email_alerts, weekly_reports")
       .single();
 
     if (error) throw error;

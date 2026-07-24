@@ -5,6 +5,7 @@ import {
   parseProjectUpdate,
 } from "../agents/parseProject.js";
 import { supabaseAdmin } from "../lib/supabaseClient.js";
+import { notifyProjectUpdate } from "../Utils/NotificationService.js";
 
 export async function uploadProjectDoc(req, res) {
   const { projectId } = req.params;
@@ -54,7 +55,7 @@ export async function uploadProjectDoc(req, res) {
       console.log("2. Using project details as AI input");
     }
 
-    // ── Fetch existing roles so AI can assign tasks to them ───────────────────
+    // ── Fetch existing roles ──────────────────────────────────────────────────
     const { data: projectData } = await supabaseAdmin
       .from("projects")
       .select("roles")
@@ -63,12 +64,12 @@ export async function uploadProjectDoc(req, res) {
 
     const existingRoles = projectData?.roles || [];
 
-    // ── Generate roles first (so tasks can be assigned to them) ──────────────
+    // ── Generate roles ────────────────────────────────────────────────────────
     console.log("5. Generating roles with AI...");
     let roles = [];
     try {
       roles = existingRoles.length > 0
-        ? existingRoles  // use existing roles if already defined
+        ? existingRoles
         : await parseProjectRoles(rawText);
       console.log("6. Roles:", roles?.length);
     } catch (aiErr) {
@@ -81,37 +82,31 @@ export async function uploadProjectDoc(req, res) {
       .update({ roles })
       .eq("id", projectId);
 
-    // ── Check for existing tasks ───────────────────────────────────────────────
+    // ── Check for existing tasks ──────────────────────────────────────────────
     console.log("7. Checking existing tasks...");
     const { data: existingTasks, error: tasksError } = await supabaseAdmin
       .from("tasks")
       .select("*")
       .eq("project_id", projectId);
     if (tasksError) throw tasksError;
+    const isUpdate = existingTasks && existingTasks.length > 0;
     console.log("8. Existing tasks count:", existingTasks?.length);
 
-    // ── Generate tasks with role assignments ──────────────────────────────────
+    // ── Generate tasks ────────────────────────────────────────────────────────
     console.log("9. Generating tasks with AI...");
     let tasks = [];
 
-    if (!existingTasks || existingTasks.length === 0) {
-      // ✅ Pass roles so AI can assign role_id + role_title to each task
+    if (!isUpdate) {
       const parsedTasks = await parseNewProject(rawText, roles);
       console.log("10. Tasks generated:", parsedTasks?.length);
 
       const { data, error: taskError } = await supabaseAdmin
         .from("tasks")
-        .insert(
-          parsedTasks.map((task) => ({
-            ...task,
-            project_id: projectId,
-          }))
-        )
+        .insert(parsedTasks.map((task) => ({ ...task, project_id: projectId })))
         .select();
       if (taskError) throw taskError;
       tasks = data;
     } else {
-      // ✅ Pass roles so AI can re-assign tasks if roles changed
       const changes = await parseProjectUpdate(rawText, existingTasks, roles);
       console.log("10. Task updates generated:", changes?.length);
 
@@ -138,6 +133,14 @@ export async function uploadProjectDoc(req, res) {
           }
         })
       );
+
+      // ✅ Only notify on updates (not on initial project creation)
+      // Fires after tasks are saved so we know the update actually succeeded
+      notifyProjectUpdate({
+        projectId,
+        details: `${tasks.length} task${tasks.length !== 1 ? "s" : ""} and roles have been updated on this project.`,
+        actorName: req.user.full_name || req.user.email,
+      }).catch(console.error);
     }
 
     res.json({ message: "Success", tasks, roles });
