@@ -13,6 +13,7 @@ import Dashboard from "../Pages/Dashboard";
 import Login from "../Pages/Login";
 import Register from "../Pages/Register";
 import Settings from "../Pages/Settings";
+import ManagerRoute from "../Components/ManagerRoute";
 
 export default function AppRouter() {
   return (
@@ -31,22 +32,15 @@ export default function AppRouter() {
             </ProtectedRoute>
           }
         />
-        <Route
-          path="/addproject"
-          element={
-            <ProtectedRoute>
-              <AddProject />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/candidates"
-          element={
-            <ProtectedRoute>
-              <Candidates />
-            </ProtectedRoute>
-          }
-        />
+
+
+<Route path="/addproject" element={
+  <ManagerRoute><AddProject /></ManagerRoute>
+} />
+<Route path="/candidates" element={
+  <ManagerRoute><Candidates /></ManagerRoute>
+} />
+        
         <Route
           path="/projects/:id"
           element={

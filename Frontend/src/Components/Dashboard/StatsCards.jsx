@@ -1,8 +1,11 @@
 import React from "react";
 import { useTranslation } from "react-i18next";
+import { useAuth } from "../../Context/useAuth";
 
 export default function StatsCards({ projects = [] }) {
   const { t } = useTranslation();
+  const { user } = useAuth();
+  const isManager = user?.role === "manager";
 
   const allTasks = projects.flatMap((p) => p.tasks || []);
   const activeProjects = projects.filter((p) => p.status === "active").length;
@@ -11,19 +14,20 @@ export default function StatsCards({ projects = [] }) {
   const assignedTasks = allTasks.filter((t) => t.assigned_to).length;
   const utilization = totalTasks > 0 ? Math.round((assignedTasks / totalTasks) * 100) : 0;
 
-  // ✅ 5th stat: tasks marked as delayed
-const overdueTasks = allTasks.filter((t) => t.status === "delayed").length;
+  // ✅ Overdue = any task marked as "delayed"
+  const overdueTasks = allTasks.filter((t) => t.status === "delayed").length;
 
+  // ✅ Team members don't see Team Utilization
   const stats = [
     { label: t("activeProjects"), value: activeProjects, dark: false },
     { label: t("totalTasks"), value: totalTasks, dark: true },
     { label: t("completedTasks"), value: completedTasks, dark: false },
-    { label: t("teamUtilization"), value: `${utilization}%`, dark: true },
-    { label: t("overdueTasks"), value: overdueTasks, dark: false },
+    ...(isManager ? [{ label: t("teamUtilization"), value: `${utilization}%`, dark: true }] : []),
+    { label: t("overdueTasks"), value: overdueTasks, dark: isManager ? false : true },
   ];
 
   return (
-    <div className="grid grid-cols-5 gap-4">
+    <div className={`grid ${isManager ? "grid-cols-5" : "grid-cols-4"} gap-4`}>
       {stats.map((s) => (
         <div
           key={s.label}
@@ -41,4 +45,4 @@ const overdueTasks = allTasks.filter((t) => t.status === "delayed").length;
       ))}
     </div>
   );
-}
+}4
