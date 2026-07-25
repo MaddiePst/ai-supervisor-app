@@ -3,10 +3,10 @@
   "version": "1.0.0",
   "type": "module",
   "main": "index.js",
-  "scripts": {
-    "dev": "node --watch src/index.js",
-    "start": "node src/index.js"
-  },
+ "scripts": {
+  "start": "node src/index.js",
+  "dev": "nodemon src/index.js"
+},
   "dependencies": {
     "@langchain/google-genai": "^2.1.30",
     "@langchain/groq": "^1.2.0",
