@@ -19,7 +19,12 @@ import calendarEventsRoutes from "./Routes/calendarRoutes.js";
 const PORT = process.env.PORT || 5000;
 const app = express();
 
-app.use(cors({ origin: "http://localhost:5173" }));
+app.use(cors({
+  origin: [
+    "http://localhost:5173",
+    "https://ai-supervisor-app.vercel.app",
+  ],
+}));
 app.use(express.json());
 
 app.use("/api/auth", authRoutes);
