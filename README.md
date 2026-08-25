@@ -138,6 +138,26 @@ Vercel (frontend) · Render (backend) · Supabase Cloud (database)
 └───────────┘ └────────────┘ └───────────┘ └───────────┘
 ```
 
+### 🔄 AI Generation Pipeline
+
+How an uploaded PDF (or a plain project description) becomes staffed roles and tracked tasks:
+
+```mermaid
+flowchart TD
+    A[Client provides input] --> B[Extract text]
+    B --> C[Generate roles]
+    C --> D[Generate tasks]
+    D --> E[Save & embed]
+
+    A -.- A1(Multer middleware parses the upload)
+    B -.- B1(unpdf converts PDF bytes to text)
+    C -.- C1("Prompt → model → parser via .pipe()")
+    D -.- D1(Same chain; assigns each task a role)
+    E -.- E1(embedQuery per task, then insert to Supabase)
+```
+
+`Generate roles` and `Generate tasks` both run the same LangChain chain — a `PromptTemplate` piped into `ChatGroq` (`llama-3.3-70b-versatile`) piped into a `JsonOutputParser`, so each call returns a structured JSON array instead of raw text. Every generated task also gets a Google Generative AI embedding attached before being written to the `tasks` table.
+
 ---
 
 ## 📁 Project Structure
