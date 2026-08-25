@@ -1,8 +1,41 @@
 import { supabaseAdmin } from "../lib/supabaseClient.js";
-import { model } from "../lib/aiConfig.js";
+import { model, extractionModel } from "../lib/aiConfig.js";
 import { HumanMessage, SystemMessage } from "@langchain/core/messages";
+import { JsonOutputParser } from "@langchain/core/output_parsers";
+import { PromptTemplate } from "@langchain/core/prompts";
 
 const getToken = (req) => req.headers.authorization?.split(" ")[1];
+
+const taskUpdateParser = new JsonOutputParser();
+const VALID_STATUSES = new Set(["not_started", "in_progress", "complete", "delayed"]);
+
+// A dedicated, low-temperature extraction chain — kept separate from the
+// conversational reply so the reply's free-form advice can't drift from what
+// actually gets written to the DB (previously both lived in one completion,
+// which let the prose and the JSON block disagree about which task changed).
+const taskUpdatePrompt = PromptTemplate.fromTemplate(`
+You are a strict task-status extraction system for a project management tool. Your ONLY job is to decide whether the team member's LATEST message reports a real status change on ONE of the tasks below, and output it as JSON.
+
+Tasks (task IDs are internal — never invent an ID that isn't listed below):
+{tasksSummary}
+
+Recent conversation (context only — do not extract updates from this, only from the latest message):
+{historyText}
+
+Team member's latest message:
+"{message}"
+
+RULES:
+1. Only extract an update if the LATEST message clearly reports progress, completion, a blocker/delay, or that work hasn't started, on a SPECIFIC task above.
+2. Match the task by meaning, not just shared words. When multiple tasks have similar titles (e.g. "Build login page" vs "Build login API" vs "Design login flow"), pick the one whose distinguishing word ("page" vs "API" vs "flow"/"design") actually matches the message — do not default to the first or most recently discussed task.
+3. Always trust what the LATEST message literally says over the task's currently stored status or anything said earlier in the conversation — status can move in ANY direction, including backward from complete. E.g. if the message says "haven't started X yet", the status is not_started even if X was previously marked delayed or in_progress. Likewise, if a task is currently complete but the latest message reports a new blocker on it (e.g. "X is blocked on client feedback"), the status is delayed — a task being complete does not mean new problems can't be reported on it.
+4. status must be exactly one of: not_started, in_progress, complete, delayed.
+5. If no task is clearly and confidently referenced, return an empty array.
+6. Only return more than one update if the message clearly reports changes to multiple distinct tasks.
+
+Return ONLY a JSON array, no explanation, no markdown:
+[{{"task_id": "uuid-from-list-above", "status": "not_started|in_progress|complete|delayed", "what": null, "how": null}}]
+`);
 
 // ─── AI CHAT ──────────────────────────────────────────────────────────────────
 export async function aiChat(req, res) {
@@ -22,9 +55,49 @@ export async function aiChat(req, res) {
     if (!project) return res.status(404).json({ error: "Project not found" });
 
     const tasks = project.tasks || [];
+    const taskById = Object.fromEntries(tasks.map((t) => [t.id, t]));
     const tasksSummary = tasks
       .map((t) => `- [ID:${t.id}] Title: "${t.title}" | Status: ${t.status} | Role: ${t.role_title || "unassigned"}`)
       .join("\n");
+
+    const recentHistory = history.slice(-10);
+    const historyText =
+      recentHistory.map((m) => `${m.role === "user" ? m.senderName || "User" : "Assistant"}: ${m.content}`).join("\n") ||
+      "(no prior messages)";
+
+    // ── Step 1: deterministic task-update extraction ──────────────────────
+    let taskUpdates = [];
+    if (tasks.length > 0) {
+      try {
+        const chain = taskUpdatePrompt.pipe(extractionModel).pipe(taskUpdateParser);
+        const raw = await chain.invoke({ tasksSummary, historyText, message: `${userName}: ${message}` });
+        // Drop anything referencing a task_id that doesn't exist on this project or an out-of-enum status.
+        taskUpdates = (Array.isArray(raw) ? raw : []).filter(
+          (u) => u?.task_id && taskById[u.task_id] && VALID_STATUSES.has(u.status)
+        );
+      } catch (err) {
+        console.error("task update extraction error:", err.message);
+        taskUpdates = [];
+      }
+    }
+
+    if (taskUpdates.length > 0) {
+      await Promise.all(taskUpdates.map(async ({ task_id, status, what, how }) => {
+        const update = { updated_at: new Date() };
+        if (status) update.status = status;
+        if (what) update.what = what;
+        if (how) update.how = how;
+        await supabaseAdmin.from("tasks").update(update).eq("id", task_id);
+      }));
+    }
+
+    // ── Step 2: conversational reply, grounded in what was actually applied ─
+    const updateNote =
+      taskUpdates.length > 0
+        ? `\n\nYou just recorded this update based on the team member's message — reference it naturally and don't contradict it:\n${taskUpdates
+            .map((u) => `- "${taskById[u.task_id].title}" -> ${u.status}`)
+            .join("\n")}`
+        : "";
 
     const systemPrompt = `You are an AI project supervisor assistant for the project "${project.name}".
 Project description: ${project.description || "N/A"}
@@ -35,26 +108,14 @@ ${tasksSummary || "No tasks yet."}
 Your job:
 1. Answer questions about the project, tasks, roles, and progress clearly and helpfully.
 2. Give concrete directions and guidance to team members based on the project context.
-3. When a team member reports real progress or changes (e.g. "I finished the login page", "the API is delayed", "we changed the approach"), detect which task it refers to by matching the title, and include task updates in your response.
+3. Be concise, friendly, and action-oriented.
 
-CRITICAL RULES:
-- NEVER mention or display any UUIDs or IDs in your response to the user. Only use task titles and role names.
-- Only update tasks where you can confidently match the user's message to a specific task title.
-- Be concise, friendly, and action-oriented.
-
-If you detect task updates from the conversation, end your response with a JSON block (this is internal only, never shown to user):
-<task_updates>
-[
-  {"task_id": "the-actual-uuid", "status": "in_progress|complete|delayed|not_started", "what": "updated description or null", "how": "updated approach or null"}
-]
-</task_updates>
-
-Only include fields that actually changed. Match tasks by title only.`;
+CRITICAL: NEVER mention or display any UUIDs or IDs in your response to the user. Only use task titles and role names.${updateNote}`;
 
     // Build message history
     const langchainMessages = [
       new SystemMessage(systemPrompt),
-      ...history.slice(-10).map((m) =>
+      ...recentHistory.map((m) =>
         m.role === "user"
           ? new HumanMessage(`${m.senderName || "User"}: ${m.content}`)
           : new HumanMessage({ role: "assistant", content: m.content })
@@ -63,27 +124,7 @@ Only include fields that actually changed. Match tasks by title only.`;
     ];
 
     const response = await model.invoke(langchainMessages);
-    let fullResponse = response.content;
-
-    // Extract and apply task updates if present
-    const taskUpdateMatch = fullResponse.match(/<task_updates>([\s\S]*?)<\/task_updates>/);
-    let taskUpdates = [];
-    let cleanResponse = fullResponse.replace(/<task_updates>[\s\S]*?<\/task_updates>/g, "").trim();
-
-    if (taskUpdateMatch) {
-      try {
-        taskUpdates = JSON.parse(taskUpdateMatch[1].trim());
-        // Apply updates to DB
-        await Promise.all(taskUpdates.map(async ({ task_id, status, what, how }) => {
-          if (!task_id) return;
-          const update = { updated_at: new Date() };
-          if (status) update.status = status;
-          if (what) update.what = what;
-          if (how) update.how = how;
-          await supabaseAdmin.from("tasks").update(update).eq("id", task_id);
-        }));
-      } catch { /* malformed JSON from AI — skip */ }
-    }
+    const cleanResponse = response.content.trim();
 
     // Save to DB
     await supabaseAdmin.from("chat_messages").insert([
