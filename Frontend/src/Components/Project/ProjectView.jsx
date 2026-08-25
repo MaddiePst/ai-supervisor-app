@@ -98,16 +98,16 @@ export default function ProjectView() {
   );
 
   return (
-    /* ✅ Full viewport height, no overflow on root */
-    <div className="h-screen bg-[#c5c7ca] text-gray-800 flex overflow-hidden">
+    /* ✅ Full viewport height on lg+; scrolls as a normal page below that */
+    <div className="min-h-screen lg:h-screen bg-[#c5c7ca] text-gray-800 flex lg:overflow-hidden">
       <Sidebar />
 
-      {/* Content area — fixed height, flex row */}
-      <div className="flex-1 flex gap-4 p-6 overflow-hidden">
+      {/* Content area — stacked below lg, fixed-height row at lg+ */}
+      <div className="flex-1 flex flex-col lg:flex-row gap-4 p-6 lg:overflow-hidden">
 
         {/* Left — scrollable */}
-        <div className="flex-1 overflow-y-auto space-y-4 pr-1 scrollbar-hide [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
-          <h1 className="text-3xl font-bold text-gray-900 tracking-tight">{project?.name}</h1>
+        <div className="flex-1 min-w-0 lg:overflow-y-auto space-y-4 pr-1 scrollbar-hide [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+          <h1 className="text-2xl lg:text-3xl font-bold text-gray-900 tracking-tight break-words">{project?.name}</h1>
           <ProjectCard
             project={project}
             tasks={tasks}
@@ -119,8 +119,8 @@ export default function ProjectView() {
           />
         </div>
 
-        {/* ✅ Right — chat fills full height of flex container, never scrolls */}
-        <div className="w-80 shrink-0 flex flex-col overflow-hidden rounded-2xl shadow-2xl ring-1 ring-white/30">
+        {/* ✅ Right — chat fills full height of flex container at lg+; fixed height when stacked */}
+        <div className="w-full h-96 lg:h-auto lg:w-80 shrink-0 flex flex-col overflow-hidden rounded-2xl shadow-2xl ring-1 ring-white/30">
           {/* Gradient header */}
           <div className="bg-linear-to-r from-blue-900 to-cyan-500 px-4 py-3 shrink-0">
             <h3 className="text-white font-bold text-sm tracking-wide">💬 Project Chat</h3>

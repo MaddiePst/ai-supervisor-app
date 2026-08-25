@@ -1,6 +1,6 @@
 import React, { useMemo } from "react";
 import { useTranslation } from "react-i18next";
-import { Cell, Pie, PieChart, Tooltip } from "recharts";
+import { Cell, Pie, PieChart, ResponsiveContainer, Tooltip } from "recharts";
 
 const COLORS = ["#8b5cf6", "#06b6d4", "#FDD835", "#f97316", "#ef4444", "#10b981", "#f43f5e"];
 
@@ -79,30 +79,34 @@ export default function DonutChart({ project, projects = [] }) {
       ) : (
         <div className="grid grid-cols-2 items-center">
           {/* Donut chart */}
-          <PieChart width={220} height={200}>
-            <Pie
-              data={data}
-              cx="50%"
-              cy="50%"
-              innerRadius={55}
-              outerRadius={85}
-              paddingAngle={3}
-              dataKey="value"
-            >
-              {data.map((entry, index) => (
-                <Cell key={index} fill={COLORS[index % COLORS.length]} />
-              ))}
-            </Pie>
-            <Tooltip
-              formatter={(value, name, props) => [
-                `${props.payload.completed}/${props.payload.total} tasks`,
-                props.payload.name,
-              ]}
-            />
-          </PieChart>
+          <div className="min-w-0">
+            <ResponsiveContainer width="100%" height={200}>
+              <PieChart>
+                <Pie
+                  data={data}
+                  cx="50%"
+                  cy="50%"
+                  innerRadius={55}
+                  outerRadius={85}
+                  paddingAngle={3}
+                  dataKey="value"
+                >
+                  {data.map((entry, index) => (
+                    <Cell key={index} fill={COLORS[index % COLORS.length]} />
+                  ))}
+                </Pie>
+                <Tooltip
+                  formatter={(value, name, props) => [
+                    `${props.payload.completed}/${props.payload.total} tasks`,
+                    props.payload.name,
+                  ]}
+                />
+              </PieChart>
+            </ResponsiveContainer>
+          </div>
 
           {/* Right panel */}
-          <div className="pl-2 pr-4">
+          <div className="pl-2 pr-4 min-w-0">
             {/* Completion stat */}
             <div className="mb-3 pb-3 border-b border-gray-100">
               <p className="text-xs text-gray-400 uppercase tracking-wider font-semibold mb-0.5">

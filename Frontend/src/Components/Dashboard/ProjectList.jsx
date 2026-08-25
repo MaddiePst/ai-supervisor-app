@@ -46,8 +46,8 @@ export default function ProjectList({ projects = [], selectedId, onSelect, onDel
 
               {/* ✅ Header row — more padding-right so X and arrow don't overlap */}
               <div className="flex items-center justify-between mb-3 pr-10">
-                <div className="flex items-center gap-2 min-w-0">
-                  <span className="font-semibold text-gray-900 text-sm truncate">{p.name}</span>
+                <div className="flex items-center gap-2 min-w-0 flex-1">
+                  <span className="font-semibold text-gray-900 text-sm truncate min-w-0">{p.name}</span>
                   <StatusBadge status={p.status} />
                 </div>
                 {/* ✅ Arrow button — separate from X, no overlap */}

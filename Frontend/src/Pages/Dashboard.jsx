@@ -43,16 +43,16 @@ export default function Dashboard() {
   return (
     <div key={i18n.language} className="min-h-screen bg-[#c5c7ca] text-gray-800 flex">
       <Sidebar />
-      <div className="flex-1 flex flex-col p-8 gap-6">
+      <div className="flex-1 min-w-0 flex flex-col p-8 gap-6">
         <h1 className="text-3xl font-bold text-gray-900 tracking-tight">
           {t("dashboardTitle")}
         </h1>
 
         <StatsCards projects={projects} />
 
-        <div className="flex gap-6">
+        <div className="flex flex-col lg:flex-row gap-6">
           {/* Left: Project List */}
-          <div className="w-2/5 overflow-y-auto pr-1 max-h-150">
+          <div className="w-full lg:w-2/5 overflow-y-auto pr-1 max-h-150">
             <ProjectList
               projects={projects}
               selectedId={selectedProject?.id}
@@ -62,7 +62,7 @@ export default function Dashboard() {
           </div>
 
           {/* Right: Charts + Calendar */}
-          <div className="flex-1 flex flex-col gap-6">
+          <div className="flex-1 min-w-0 flex flex-col gap-6">
             <DonutChart project={selectedProject} projects={projects} />
             {/* ✅ Pass projects so calendar modal can link events to projects */}
             <DeadlineCalendar projects={projects} />

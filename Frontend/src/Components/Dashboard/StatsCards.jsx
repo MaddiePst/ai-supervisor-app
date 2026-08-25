@@ -27,17 +27,17 @@ export default function StatsCards({ projects = [] }) {
   ];
 
   return (
-    <div className={`grid ${isManager ? "grid-cols-5" : "grid-cols-4"} gap-4`}>
+    <div className={`grid grid-cols-2 md:grid-cols-3 ${isManager ? "lg:grid-cols-5" : "lg:grid-cols-4"} gap-4`}>
       {stats.map((s) => (
         <div
           key={s.label}
-          className={`rounded-2xl p-5 shadow ${
+          className={`min-w-0 rounded-2xl p-5 shadow ${
             s.dark
               ? "bg-linear-to-r from-blue-900 to-cyan-500 text-white"
               : "bg-white/60"
           }`}
         >
-          <p className={`text-md ${s.dark ? "text-blue-100" : "text-gray-500"}`}>
+          <p className={`text-md truncate ${s.dark ? "text-blue-100" : "text-gray-500"}`}>
             {s.label}
           </p>
           <h3 className="text-2xl font-bold mt-1">{s.value}</h3>
@@ -45,4 +45,4 @@ export default function StatsCards({ projects = [] }) {
       ))}
     </div>
   );
-}4
+}
