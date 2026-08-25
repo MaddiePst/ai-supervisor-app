@@ -2,7 +2,7 @@
 
 # 🧠 AI Supervisor Assistant
 
-### An AI-powered project management platform that turns a project idea into a staffed, tracked, and executing team — in seconds.
+### Turns a project idea into a staffed, tracked, executing team.
 
 [![Live Demo](https://img.shields.io/badge/Live_Demo-Visit_App-06b6d4?style=for-the-badge)](https://ai-supervisor-app.vercel.app)
 [![Frontend](https://img.shields.io/badge/Frontend-Vercel-000000?style=for-the-badge&logo=vercel)](https://vercel.com)
@@ -23,11 +23,9 @@
 
 ## 📖 Overview
 
-**AI Supervisor Assistant** eliminates the friction between having a project idea and having a team executing it.
+Upload a project spec (PDF or plain text) and the AI generates a task breakdown, defines the staffing roles needed, and assigns each task to a role. A scoring engine then ranks candidates by skill match for hiring.
 
-Upload a project spec PDF — or just type a description — and the platform's AI pipeline automatically generates a complete task breakdown, defines the staffing roles you'll need, and assigns every task to the right role. From there, an algorithmic scoring engine ranks available team members by skill match, so hiring becomes a data-driven decision instead of guesswork.
-
-Once your team is staffed, everyone works inside a single unified workspace: task tracking with granular role-based permissions, an AI assistant that updates project state from natural conversation, real-time team messaging, a shared calendar, and an automated notification system — all available in **four languages**.
+Once staffed, the team works in one workspace: role-scoped task tracking, an AI chat assistant that updates task status from natural language, team messaging, a shared calendar, and notifications — in **four languages**.
 
 ---
 
@@ -35,7 +33,7 @@ Once your team is staffed, everyone works inside a single unified workspace: tas
 
 | Objective | How It's Achieved |
 |---|---|
-| **Eliminate manual project breakdown** | AI (Groq llama-3.3-70b via LangChain) parses a PDF or description and generates structured tasks with `what`, `how`, and required skills |
+| **Eliminate manual project breakdown** | AI (Groq gpt-oss-120b via LangChain) parses a PDF or description and generates structured tasks with `what`, `how`, and required skills |
 | **Make hiring data-driven** | Candidate scoring algorithm matches team member profiles against a 15-skill role map, ranking by percentage fit |
 | **Give every user only what they need** | Role-based access control enforced at three layers — route guards, API middleware, and conditional UI rendering |
 | **Reduce status-update friction** | AI chat parses natural language ("I finished the login page") and silently updates the corresponding task in the database |
@@ -47,10 +45,10 @@ Once your team is staffed, everyone works inside a single unified workspace: tas
 ## ✨ Key Features
 
 ### 🤖 AI-Powered Project Generation
-Upload a PDF spec or write a description. A two-stage AI pipeline first extracts the staffing roles your project needs, then generates tasks — each one pre-assigned to the appropriate role. Updating a project later? The AI merges new requirements with existing tasks instead of overwriting your work.
+A two-stage pipeline extracts the staffing roles a project needs, then generates tasks pre-assigned to the right role. Later updates merge with existing tasks instead of overwriting them.
 
 ### 🎯 Intelligent Candidate Matching
-Every team member is scored against the role you're hiring for. The algorithm builds a skill pool from assigned tasks, role definitions, and a curated 15-skill map per role type, then calculates match percentage. Candidates sort highest-fit-first, with hired members pinned to the top.
+Team members are scored against the role being hired for, using a skill pool built from assigned tasks, role definitions, and a 15-skill map per role type. Candidates sort highest-fit-first, with hired members pinned to the top.
 
 ### 📊 Role-Scoped Task Management
 Four status states — Not Started, In Progress, Delayed, Complete. Managers control everything. Team members can only update tasks belonging to the role they were hired into, enforced on both the client and the API. Inline editing for task details keeps everyone in context.
@@ -95,7 +93,7 @@ Supabase — PostgreSQL, Row Level Security, Auth (email + Google OAuth), Storag
 <tr>
 <td><b>AI</b></td>
 <td>
-LangChain · Groq (llama-3.3-70b-versatile) · Google Generative AI Embeddings
+LangChain · Groq (openai/gpt-oss-120b) · Google Generative AI Embeddings
 </td>
 </tr>
 <tr>
@@ -132,7 +130,7 @@ Vercel (frontend) · Render (backend) · Supabase Cloud (database)
    │              │              │              │
 ┌──▼────────┐ ┌───▼────────┐ ┌───▼───────┐ ┌────▼──────┐
 │ Supabase  │ │   Groq     │ │  Resend   │ │  Google   │
-│ Postgres  │ │ llama-3.3  │ │  Email    │ │  OAuth    │
+│ Postgres  │ │ gpt-oss    │ │  Email    │ │  OAuth    │
 │ Auth      │ │ LangChain  │ │  API      │ │           │
 │ Storage   │ │            │ │           │ │           │
 └───────────┘ └────────────┘ └───────────┘ └───────────┘
