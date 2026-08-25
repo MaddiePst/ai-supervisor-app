@@ -154,7 +154,7 @@ flowchart TD
     E -.- E1(embedQuery per task, then insert to Supabase)
 ```
 
-`Generate roles` and `Generate tasks` both run the same LangChain chain — a `PromptTemplate` piped into `ChatGroq` (`llama-3.3-70b-versatile`) piped into a `JsonOutputParser`, so each call returns a structured JSON array instead of raw text. Every generated task also gets a Google Generative AI embedding attached before being written to the `tasks` table.
+`Generate roles` and `Generate tasks` both run the same LangChain chain — a `PromptTemplate` piped into `ChatGroq` (`openai/gpt-oss-120b`) piped into a `JsonOutputParser`, so each call returns a structured JSON array instead of raw text. Every generated task also gets a Google Generative AI embedding attached before being written to the `tasks` table.
 
 ---
 
