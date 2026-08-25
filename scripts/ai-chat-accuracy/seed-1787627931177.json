@@ -1,0 +1,19 @@
+{
+  "projectId": "521831a3-8803-4e62-b0f7-fa4d5a1a4f6e",
+  "managerEmail": "ai-chat-test+manager-1787627931177@example.com",
+  "teamEmail": "ai-chat-test+team-1787627931177@example.com",
+  "password": "TestPass123",
+  "roleId": "623b9f98-2c4d-453e-b6e8-2b8dd408d937",
+  "taskTitleById": {
+    "42f4e696-d21b-428c-826f-18c983352293": "Build login page",
+    "7c0c6559-8b5a-467f-b130-974849fb7586": "Build login API",
+    "2d044833-082a-4880-943e-40147b77cf2a": "Design login flow",
+    "61ff9c39-b370-4d08-8dc4-66840df7f476": "Build signup page",
+    "a224fc10-557a-4974-90d0-9716d9812a1e": "Build signup API",
+    "2df0101b-0538-4e0b-a682-ee2f6a0323fe": "Write unit tests for auth module",
+    "9dac5a4b-07bf-4e58-ba11-9319351c27d2": "Deploy backend to production",
+    "568a1469-4a32-41a8-b1ba-13c2698e25dc": "Create dashboard UI",
+    "be654b56-1062-48bb-b16b-6cf07cc38fce": "Integrate payment gateway",
+    "64ef8c76-ba92-49c4-8750-d9ea0f089209": "Set up CI/CD pipeline"
+  }
+}

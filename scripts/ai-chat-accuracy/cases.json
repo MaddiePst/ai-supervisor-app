@@ -1,0 +1,110 @@
+[
+  {
+    "message": "I finished the login page today",
+    "expectedTaskTitle": "Build login page",
+    "expectedStatus": "complete",
+    "style": "direct"
+  },
+  {
+    "message": "The login API is done and merged",
+    "expectedTaskTitle": "Build login API",
+    "expectedStatus": "complete",
+    "style": "direct"
+  },
+  {
+    "message": "Just wrapped up the login flow design",
+    "expectedTaskTitle": "Design login flow",
+    "expectedStatus": "complete",
+    "style": "direct"
+  },
+  {
+    "message": "Started on the signup page this morning",
+    "expectedTaskTitle": "Build signup page",
+    "expectedStatus": "in_progress",
+    "style": "direct"
+  },
+  {
+    "message": "The signup API is blocked — waiting on the payment provider's docs",
+    "expectedTaskTitle": "Build signup API",
+    "expectedStatus": "delayed",
+    "style": "indirect"
+  },
+  {
+    "message": "Auth unit tests are about halfway done",
+    "expectedTaskTitle": "Write unit tests for auth module",
+    "expectedStatus": "in_progress",
+    "style": "indirect"
+  },
+  {
+    "message": "We shipped the backend to prod last night",
+    "expectedTaskTitle": "Deploy backend to production",
+    "expectedStatus": "complete",
+    "style": "indirect"
+  },
+  {
+    "message": "Dashboard UI hasn't been touched yet",
+    "expectedTaskTitle": "Create dashboard UI",
+    "expectedStatus": "not_started",
+    "style": "direct"
+  },
+  {
+    "message": "Payment gateway integration is done",
+    "expectedTaskTitle": "Integrate payment gateway",
+    "expectedStatus": "complete",
+    "style": "direct"
+  },
+  {
+    "message": "CI/CD pipeline setup is delayed because of a Docker issue",
+    "expectedTaskTitle": "Set up CI/CD pipeline",
+    "expectedStatus": "delayed",
+    "style": "direct"
+  },
+  {
+    "message": "The login stuff on the backend side is finished",
+    "expectedTaskTitle": "Build login API",
+    "expectedStatus": "complete",
+    "style": "ambiguous - similar tasks: Build login page / Build login API / Design login flow"
+  },
+  {
+    "message": "Still working through the signup flow's API integration",
+    "expectedTaskTitle": "Build signup API",
+    "expectedStatus": "in_progress",
+    "style": "ambiguous - similar tasks: Build signup page / Build signup API"
+  },
+  {
+    "message": "The tests for auth are complete now",
+    "expectedTaskTitle": "Write unit tests for auth module",
+    "expectedStatus": "complete",
+    "style": "indirect"
+  },
+  {
+    "message": "We haven't started deploying to CI/CD yet",
+    "expectedTaskTitle": "Set up CI/CD pipeline",
+    "expectedStatus": "not_started",
+    "style": "ambiguous - similar tasks: Deploy backend to production / Set up CI/CD pipeline"
+  },
+  {
+    "message": "The dashboard's UI work is now in progress",
+    "expectedTaskTitle": "Create dashboard UI",
+    "expectedStatus": "in_progress",
+    "style": "direct"
+  },
+  {
+    "message": "Signup page is complete",
+    "expectedTaskTitle": "Build signup page",
+    "expectedStatus": "complete",
+    "style": "direct"
+  },
+  {
+    "message": "Login design is blocked on feedback from the client",
+    "expectedTaskTitle": "Design login flow",
+    "expectedStatus": "delayed",
+    "style": "ambiguous - similar tasks: Build login page / Design login flow"
+  },
+  {
+    "message": "The payment integration on the backend hit a snag and is delayed",
+    "expectedTaskTitle": "Integrate payment gateway",
+    "expectedStatus": "delayed",
+    "style": "state-conflict - contradicts case 9 (complete), tests whether latest message wins"
+  }
+]
